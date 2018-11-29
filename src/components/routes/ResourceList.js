@@ -115,7 +115,8 @@ class ResourceList extends PureComponent {
               fetchPolicy="cache-and-network"
               query={remote.query[resourceParam]}
               variables={{ orderBy }}>
-              {({ data, refetch }) => {
+              {({ data, refetch, error }) => {
+                if (error) return <pre>{error.toString()}</pre>;
                 const queryName = `${camelCase(resourceParam)}Connection`;
                 if (!data[queryName]) return null;
                 const resource = data.resources.find(

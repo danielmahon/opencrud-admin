@@ -1,0 +1,43 @@
+body {
+  color: var(--mdc-theme-text-primary-on-background, rgba(0, 0, 0, 0.87));
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  animation: App-logo-spin infinite 20s linear;
+  height: 40vmin;
+}
+
+.App-header {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* .rmwc-data-table__sort-icon {
+  color: var(--mdc-theme-primary);
+} */
+
+.mdc-list-item__graphic {
+  margin-right: 1rem;
+}

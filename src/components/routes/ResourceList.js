@@ -169,7 +169,6 @@ class ResourceList extends PureComponent {
                               key={item.id}
                               activated={this.state.active === idx}
                               onDoubleClick={() => {
-                                console.log('DOUBLE CLICK');
                                 navigate(
                                   `/edit/${singular(resourceParam)}/${item.id}`
                                 );

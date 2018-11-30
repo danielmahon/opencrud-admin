@@ -6,7 +6,6 @@ export const resources = [
       fields: [
         { source: 'name', type: 'Text' },
         { source: 'email', type: 'Text' },
-        { source: 'id', type: 'Text' },
         { source: 'createdAt', type: 'DateTime' },
         { source: 'updatedAt', type: 'DateTime' },
       ],
@@ -28,7 +27,6 @@ export const resources = [
       fields: [
         { source: 'title', type: 'Text' },
         { source: 'isPublished', type: 'Boolean' },
-        { source: 'id', type: 'Text' },
         { source: 'createdAt', type: 'DateTime' },
         { source: 'updatedAt', type: 'DateTime' },
         { source: 'author.name', type: 'Reference:User' },
@@ -53,7 +51,6 @@ export const resources = [
       fields: [
         { source: 'src', type: 'Image' },
         { source: 'title', type: 'Text' },
-        { source: 'id', type: 'Text' },
         { source: 'createdAt', type: 'DateTime' },
         { source: 'updatedAt', type: 'DateTime' },
       ],

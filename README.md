@@ -9,8 +9,6 @@ The goal is to provide a CMS to connect to YOUR server, which in turn communicat
 
 ![](https://github.com/danielmahon/prisma-cms/blob/master/public/screenshot.png)
 
----
-
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts

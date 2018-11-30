@@ -8,6 +8,8 @@ import 'react-placeholder/lib/reactPlaceholder.css';
 import 'material-components-web/dist/material-components-web.min.css';
 import '@rmwc/circular-progress/circular-progress.css';
 import '@rmwc/data-table/data-table.css';
+import '@uppy/core/dist/style.css';
+import '@uppy/dashboard/dist/style.css';
 import './index.css';
 
 // Relative Imports

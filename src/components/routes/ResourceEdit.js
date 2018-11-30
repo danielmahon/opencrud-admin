@@ -16,10 +16,15 @@ import styled from 'styled-components';
 import { Fab } from '@rmwc/fab';
 import Imgix from 'react-imgix';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
+import Uppy from '@uppy/core';
+import AwsS3 from '@uppy/aws-s3';
+import { Dashboard } from '@uppy/react';
+import Url from 'url-parse';
 
 import { remote } from '../../graphs';
 import { DefaultLayout } from '../layouts';
 import { filterVariables } from '../../providers/GraphqlProvider';
+
 // import Text from '../ui/Text';
 // import Placeholder from '../ui/Placeholder';
 
@@ -74,7 +79,7 @@ const FormikDateField = ({
 
 const FormikTextField = ({
   field: { value, ...field }, // { name, value, onChange, onBlur }
-  form: { touched, errors }, // also values, setXXXX, handleXXXX, dirty, isValid, status, etc.
+  form, // also values, setXXXX, handleXXXX, dirty, isValid, status, etc.
   help,
   ...props
 }) => (
@@ -85,31 +90,94 @@ const FormikTextField = ({
   </Fragment>
 );
 
-const FormikImageField = ({
-  field: { value, ...field }, // { name, value, onChange, onBlur }
-  form: { touched, errors }, // also values, setXXXX, handleXXXX, dirty, isValid, status, etc.
-  help,
-  ...props
-}) => (
-  <Fragment>
-    <TextField type="text" value={value || ''} {...field} {...props} />
-    {value && (
-      <Imgix
-        src={value}
-        sizes="(max-width: 600px) 600px, 1024px"
-        alt="preview"
-        htmlAttributes={{
-          style: {
-            maxWidth: '100%',
-            maxheight: 640,
+class FormikImageField extends PureComponent {
+  constructor(props) {
+    super(props);
+    this.uppy = Uppy({
+      restrictions: { maxNumberOfFiles: 1 },
+      autoProceed: false,
+    });
+    this.uppy.use(AwsS3, {
+      limit: 1,
+      timeout: 1000 * 60 * 60,
+      getUploadParameters(file) {
+        // Send a request to our signing endpoint.
+        return fetch(process.env.REACT_APP_GRAPHQL_ENDPOINT + '/getSignedUrl', {
+          method: 'post',
+          // Send and receive JSON.
+          headers: {
+            accept: 'application/json',
+            'content-type': 'application/json',
           },
-        }}
-      />
-    )}
-    {help && <TextFieldHelperText persistent>{help}</TextFieldHelperText>}
-    <ErrorMessage name={field.name} component={TextFieldHelperText} />
-  </Fragment>
-);
+          body: JSON.stringify({
+            filename: file.name,
+            contentType: file.type,
+          }),
+        }).then(response => response.json());
+      },
+    });
+    this.uppy.on('complete', result => {
+      if (result.failed.length) return;
+      const url = result.successful[0].uploadURL;
+      props.form.setFieldValue(props.field.name, this.getImgixUrl(url));
+      props.form.submitForm();
+    });
+  }
+  getImgixUrl = source => {
+    const url = new Url(source);
+    url.set('hostname', process.env.REACT_APP_IMGIX_DOMAIN);
+    let pathname = url.pathname.split('/');
+    pathname.splice(0, 2);
+    url.set('pathname', decodeURIComponent(pathname.join('/')));
+    return url.toString();
+  };
+  componentWillUnmount = () => {
+    this.uppy.close();
+  };
+  render() {
+    const {
+      field: { value, ...field }, // { name, value, onChange, onBlur }
+      form, // also values, setXXXX, handleXXXX, dirty, isValid, status, etc.
+      help,
+      ...props
+    } = this.props;
+
+    return (
+      <Fragment>
+        {value && (
+          <TextField type="text" value={value || ''} {...field} {...props} />
+        )}
+        {value && (
+          <Imgix
+            src={value}
+            sizes="(min-width: 600px) 600px, 100vw"
+            alt="preview"
+            htmlAttributes={{
+              style: {
+                width: '100%',
+                maxheight: 640,
+              },
+            }}
+          />
+        )}
+        {this.uppy && !value && (
+          <Dashboard
+            uppy={this.uppy}
+            plugins={['AwsS3', 'GoogleDrive']}
+            width={1920}
+            height={400}
+            note="Images and video only, 2–3 files, up to 1 MB"
+            proudlyDisplayPoweredByUppy={false}
+            {...field}
+            {...props}
+          />
+        )}
+        {help && <TextFieldHelperText persistent>{help}</TextFieldHelperText>}
+        <ErrorMessage name={field.name} component={TextFieldHelperText} />
+      </Fragment>
+    );
+  }
+}
 
 const FormikCheckbox = ({
   field: { value, ...field }, // { name, value, onChange, onBlur }
@@ -146,11 +214,13 @@ const FormikReferenceField = ({
       return (
         <Fragment>
           <Select {...field} {...props} options={items} />
-          <IconButton
-            type="button"
-            icon="link"
-            onClick={() => navigate(path)}
-          />
+          {path && (
+            <IconButton
+              type="button"
+              icon="link"
+              onClick={() => navigate(path)}
+            />
+          )}
           {help && <TextFieldHelperText persistent>{help}</TextFieldHelperText>}
           <ErrorMessage name={field.name} component={TextFieldHelperText} />
         </Fragment>
@@ -175,7 +245,7 @@ const filterValues = (item, resource) => {
 class ResourceEdit extends PureComponent {
   state = { activeTab: 0 };
   render() {
-    const { activeTab } = this.state;
+    const { activeTab, pageTitle } = this.state;
     const { resource: resourceParam, id: resourceId } = this.props;
     const canBeDeleted = has(
       remote.mutation,
@@ -183,23 +253,26 @@ class ResourceEdit extends PureComponent {
     );
     const isNew = resourceId === 'new';
     return (
-      <DefaultLayout title={`Edit ${capitalize(resourceParam)}: ${resourceId}`}>
-        <Query
-          fetchPolicy="cache-and-network"
-          query={remote.query[resourceParam]}
-          variables={{ where: { id: resourceId } }}>
-          {({ loading, data, client }) => {
-            if (loading) return null;
-            if (!isNew && !data[resourceParam]) {
-              return <Redirect to={`/list/${plural(resourceParam)}`} noThrow />;
-            }
-            // Format fields
-            let item = isNew ? {} : data[resourceParam];
-            const resource = data.resources.find(
-              r => r.type === capitalize(resourceParam)
-            );
-            const initialValues = filterValues(item, resource);
-            return (
+      <Query
+        fetchPolicy="cache-and-network"
+        query={remote.query[resourceParam]}
+        variables={{ where: { id: resourceId } }}>
+        {({ loading, data, client }) => {
+          if (loading) return null;
+          if (!isNew && !data[resourceParam]) {
+            return <Redirect to={`/list/${plural(resourceParam)}`} noThrow />;
+          }
+          // Format fields
+          let item = isNew ? {} : data[resourceParam];
+          const resource = data.resources.find(
+            r => r.type === capitalize(resourceParam)
+          );
+          const initialValues = filterValues(item, resource);
+          const title =
+            initialValues.name || initialValues.title || capitalize(resourceId);
+          return (
+            <DefaultLayout
+              title={`Edit ${capitalize(resourceParam)}: ${title}`}>
               <Grid>
                 <GridCell span={12}>
                   <TabBar
@@ -396,10 +469,10 @@ class ResourceEdit extends PureComponent {
                   }}
                 </Formik>
               </Grid>
-            );
-          }}
-        </Query>
-      </DefaultLayout>
+            </DefaultLayout>
+          );
+        }}
+      </Query>
     );
   }
 }

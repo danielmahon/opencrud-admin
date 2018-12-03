@@ -20,6 +20,11 @@ import Uppy from '@uppy/core';
 import AwsS3 from '@uppy/aws-s3';
 import { Dashboard } from '@uppy/react';
 import Url from 'url-parse';
+import { Helmet } from 'react-helmet';
+import { Elevation } from '@rmwc/elevation';
+import SparkMD5 from 'spark-md5';
+import ChunkedFileReader from 'chunked-file-reader';
+import hasha from 'hasha';
 
 import { remote } from '../../graphs';
 import { DefaultLayout } from '../layouts';
@@ -100,36 +105,58 @@ class FormikImageField extends PureComponent {
     this.uppy.use(AwsS3, {
       limit: 1,
       timeout: 1000 * 60 * 60,
-      getUploadParameters(file) {
+      getUploadParameters: async file => {
+        // Add fingerprint to file
+        const checksum = await this.getFileMD5(file.data);
         // Send a request to our signing endpoint.
-        return fetch(process.env.REACT_APP_GRAPHQL_ENDPOINT + '/getSignedUrl', {
-          method: 'post',
-          // Send and receive JSON.
-          headers: {
-            accept: 'application/json',
-            'content-type': 'application/json',
-          },
-          body: JSON.stringify({
-            filename: file.name,
-            contentType: file.type,
-          }),
-        }).then(response => response.json());
+        const response = await fetch(
+          process.env.REACT_APP_GRAPHQL_ENDPOINT + '/getSignedUrl',
+          {
+            method: 'post',
+            // Send and receive JSON.
+            headers: {
+              accept: 'application/json',
+              'content-type': 'application/json',
+            },
+            body: JSON.stringify({
+              filename: file.name,
+              contentType: file.type,
+              checksum,
+            }),
+          }
+        );
+        const result = await response.json();
+        if (result.error) throw new Error(result.error);
+        return result;
       },
     });
+    this.uppy.on('upload-error', (file, error) => {
+      this.uppy.info(error, 'error', 5000);
+    });
     this.uppy.on('complete', result => {
-      if (result.failed.length) return;
-      const url = result.successful[0].uploadURL;
-      props.form.setFieldValue(props.field.name, this.getImgixUrl(url));
+      if (result.failed.length || !result.successful.length) return;
+      const meta = result.successful[0].meta;
+      props.form.setValues({
+        src: `${process.env.REACT_APP_IMGIX_ENDPOINT}/${meta.key}`,
+        filename: meta.filename,
+        checksum: meta.checksum,
+      });
       props.form.submitForm();
     });
   }
-  getImgixUrl = source => {
-    const url = new Url(source);
-    url.set('hostname', process.env.REACT_APP_IMGIX_DOMAIN);
-    let pathname = url.pathname.split('/');
-    pathname.splice(0, 2);
-    url.set('pathname', decodeURIComponent(pathname.join('/')));
-    return url.toString();
+  getFileMD5 = file => {
+    return new Promise((resolve, reject) => {
+      const spark = new SparkMD5.ArrayBuffer();
+      const reader = new ChunkedFileReader();
+      reader.subscribe('chunk', e => {
+        spark.append(e.chunk);
+      });
+      reader.subscribe('end', e => {
+        const rawHash = spark.end();
+        resolve(rawHash);
+      });
+      reader.readChunks(file);
+    });
   };
   componentWillUnmount = () => {
     this.uppy.close();
@@ -145,19 +172,25 @@ class FormikImageField extends PureComponent {
     return (
       <Fragment>
         {value && (
-          <TextField type="text" value={value || ''} {...field} {...props} />
+          <Elevation
+            z={4}
+            style={{
+              display: 'inline-flex',
+              borderRadius: '.25rem',
+              overflow: 'hidden',
+              marginBottom: '1rem',
+              height: 480,
+            }}>
+            <Imgix src={value} height={480} alt="preview" />
+          </Elevation>
         )}
         {value && (
-          <Imgix
-            src={value}
-            sizes="(min-width: 600px) 600px, 100vw"
-            alt="preview"
-            htmlAttributes={{
-              style: {
-                width: '100%',
-                maxheight: 640,
-              },
-            }}
+          <TextField
+            disabled
+            type="text"
+            value={value || ''}
+            {...field}
+            {...props}
           />
         )}
         {this.uppy && !value && (
@@ -166,7 +199,7 @@ class FormikImageField extends PureComponent {
             plugins={['AwsS3', 'GoogleDrive']}
             width={1920}
             height={400}
-            note="Images and video only, 2–3 files, up to 1 MB"
+            // note="Images and video only, 2–3 files, up to 1 MB"
             proudlyDisplayPoweredByUppy={false}
             {...field}
             {...props}
@@ -245,7 +278,7 @@ const filterValues = (item, resource) => {
 class ResourceEdit extends PureComponent {
   state = { activeTab: 0 };
   render() {
-    const { activeTab, pageTitle } = this.state;
+    const { activeTab } = this.state;
     const { resource: resourceParam, id: resourceId } = this.props;
     const canBeDeleted = has(
       remote.mutation,
@@ -271,205 +304,210 @@ class ResourceEdit extends PureComponent {
           const title =
             initialValues.name || initialValues.title || capitalize(resourceId);
           return (
-            <DefaultLayout
-              title={`Edit ${capitalize(resourceParam)}: ${title}`}>
-              <Grid>
-                <GridCell span={12}>
-                  <TabBar
-                    activeTabIndex={activeTab}
-                    onActivate={evt =>
-                      this.setState({ activeTab: evt.detail.index })
-                    }>
-                    <Tab icon="edit">Edit</Tab>
-                    <Tab icon="pageview" disabled>
-                      Preview
-                    </Tab>
-                  </TabBar>
-                </GridCell>
+            <Grid>
+              <Helmet title={`Edit ${capitalize(resourceParam)}: ${title}`} />
+              <GridCell span={12}>
+                <TabBar
+                  activeTabIndex={activeTab}
+                  onActivate={evt =>
+                    this.setState({ activeTab: evt.detail.index })
+                  }>
+                  <Tab icon="edit">Edit</Tab>
+                  <Tab icon="pageview" disabled>
+                    Preview
+                  </Tab>
+                </TabBar>
+              </GridCell>
 
-                <Formik
-                  initialValues={initialValues}
-                  onSubmit={(values, { resetForm, setSubmitting }) => {
-                    const name = isNew
-                      ? `create${capitalize(resourceParam)}`
-                      : `update${capitalize(resourceParam)}`;
-                    // Call remote mutation
-                    client
-                      .mutate({
-                        mutation: remote.mutation[name],
-                        variables: {
-                          where: { id: values.id },
-                          data: filterVariables(name, values),
-                        },
-                      })
-                      .then(({ data }) => {
-                        if (isNew) {
-                          return navigate(
-                            `/edit/${resourceParam}/${data[name].id}`
-                          );
-                        }
-                        // Reset form values with updated data
-                        resetForm(filterValues(data[name], resource));
-                      })
-                      .catch(error => {
-                        setSubmitting(false);
-                      });
-                  }}>
-                  {({ isSubmitting, dirty, resetForm, setSubmitting }) => {
-                    return (
-                      <GridCell span={12}>
-                        <Form>
-                          <GridInner>
-                            {resource.edit.fields.map((field, idx) => {
-                              switch (field.type.split(':')[0]) {
-                                case 'DateTime':
-                                  return (
-                                    <GridCell span={12} key={idx}>
-                                      <Field
-                                        component={FormikDateField}
-                                        name={field.source}
-                                        label={startCase(field.source)}
-                                      />
-                                    </GridCell>
-                                  );
-                                case 'Reference':
-                                  const referenceObject = get(
-                                    item,
-                                    field.source.split('.')[0]
-                                  );
-                                  const referenceType = camelCase(
-                                    field.type.split(':')[1]
-                                  );
-                                  const path = isNew
-                                    ? null
-                                    : `/edit/${referenceType}/${
-                                        referenceObject.id
-                                      }`;
-                                  const name = field.source.split('.')[0];
-                                  const referenceLabel = field.source.split(
-                                    '.'
-                                  )[1];
-                                  return (
-                                    <GridCell span={12} key={idx}>
-                                      <Field
-                                        path={path}
-                                        component={FormikReferenceField}
-                                        name={name}
-                                        label={startCase(name)}
-                                        referenceType={plural(referenceType)}
-                                        referenceLabel={referenceLabel}
-                                      />
-                                    </GridCell>
-                                  );
-                                case 'Boolean':
-                                  return (
-                                    <GridCell span={12} key={idx}>
-                                      <Field
-                                        component={FormikCheckbox}
-                                        name={field.source}
-                                        label={startCase(field.source)}
-                                      />
-                                    </GridCell>
-                                  );
-                                case 'Image':
-                                  return (
-                                    <GridCell span={12} key={idx}>
-                                      <Field
-                                        style={{ width: '100%' }}
-                                        component={FormikImageField}
-                                        name={field.source}
-                                        label={startCase(field.source)}
-                                      />
-                                    </GridCell>
-                                  );
-                                case 'Text':
-                                default:
-                                  return (
-                                    <GridCell span={12} key={idx}>
-                                      <Field
-                                        style={{ width: '100%' }}
-                                        disabled={field.source === 'id'}
-                                        component={FormikTextField}
-                                        name={field.source}
-                                        label={startCase(field.source)}
-                                      />
-                                    </GridCell>
-                                  );
-                              }
-                            })}
-                            <Actions span={12}>
-                              <Button
-                                unelevated
-                                type="submit"
-                                disabled={isSubmitting || !dirty}>
-                                {isSubmitting ? (
-                                  <span>
-                                    <ButtonIcon icon={<CircularProgress />} />{' '}
-                                    Saving...
-                                  </span>
-                                ) : (
-                                  <span>
-                                    <ButtonIcon icon="save" /> Save
-                                  </span>
-                                )}
-                              </Button>
-                              <Button
-                                outlined
-                                type="reset"
-                                disabled={isSubmitting || !dirty}
-                                onClick={() => resetForm(initialValues)}>
-                                <ButtonIcon icon="undo" /> Undo
-                              </Button>
-                              {canBeDeleted && (
-                                <Mutation
-                                  mutation={
-                                    remote.mutation[
-                                      `delete${capitalize(resourceParam)}`
-                                    ]
-                                  }
-                                  onCompleted={() => {
-                                    navigate(`/list/${plural(resourceParam)}`);
-                                  }}
-                                  variables={{ where: { id: resourceId } }}>
-                                  {handleDelete => (
-                                    <DangerButton
-                                      type="button"
-                                      outlined
-                                      onClick={() => {
-                                        setSubmitting(true);
-                                        handleDelete();
-                                      }}
-                                      disabled={isSubmitting}>
-                                      <ButtonIcon icon="delete" /> Delete
-                                    </DangerButton>
-                                  )}
-                                </Mutation>
+              <Formik
+                initialValues={initialValues}
+                onSubmit={(values, { resetForm, setSubmitting }) => {
+                  const name = isNew
+                    ? `create${capitalize(resourceParam)}`
+                    : `update${capitalize(resourceParam)}`;
+                  // Call remote mutation
+                  client
+                    .mutate({
+                      mutation: remote.mutation[name],
+                      variables: {
+                        where: values.id ? { id: values.id } : undefined,
+                        data: filterVariables(name, values),
+                      },
+                      onError: error => {
+                        console.log(error);
+                      },
+                    })
+                    .then(({ data }) => {
+                      if (isNew) {
+                        return navigate(
+                          `/edit/${resourceParam}/${data[name].id}`
+                        );
+                      }
+                      // Reset form values with updated data
+                      resetForm(filterValues(data[name], resource));
+                    })
+                    .catch(error => {
+                      console.log(error);
+                      setSubmitting(false);
+                    });
+                }}>
+                {({ isSubmitting, dirty, resetForm, setSubmitting }) => {
+                  return (
+                    <GridCell span={12}>
+                      <Form>
+                        <GridInner>
+                          {resource.edit.fields.map((field, idx) => {
+                            let disabled = false;
+                            switch (field.type.split(':')[0]) {
+                              case 'DateTime':
+                                return (
+                                  <GridCell span={12} key={idx}>
+                                    <Field
+                                      component={FormikDateField}
+                                      name={field.source}
+                                      label={startCase(field.source)}
+                                    />
+                                  </GridCell>
+                                );
+                              case 'Reference':
+                                const referenceObject = get(
+                                  item,
+                                  field.source.split('.')[0]
+                                );
+                                const referenceType = camelCase(
+                                  field.type.split(':')[1]
+                                );
+                                const path = isNew
+                                  ? null
+                                  : `/edit/${referenceType}/${
+                                      referenceObject.id
+                                    }`;
+                                const name = field.source.split('.')[0];
+                                const referenceLabel = field.source.split(
+                                  '.'
+                                )[1];
+                                return (
+                                  <GridCell span={12} key={idx}>
+                                    <Field
+                                      path={path}
+                                      component={FormikReferenceField}
+                                      name={name}
+                                      label={startCase(name)}
+                                      referenceType={plural(referenceType)}
+                                      referenceLabel={referenceLabel}
+                                    />
+                                  </GridCell>
+                                );
+                              case 'Boolean':
+                                return (
+                                  <GridCell span={12} key={idx}>
+                                    <Field
+                                      component={FormikCheckbox}
+                                      name={field.source}
+                                      label={startCase(field.source)}
+                                    />
+                                  </GridCell>
+                                );
+                              case 'Image':
+                                return (
+                                  <GridCell span={12} key={idx}>
+                                    <Field
+                                      style={{ width: '100%' }}
+                                      component={FormikImageField}
+                                      name={field.source}
+                                      label={startCase(field.source)}
+                                    />
+                                  </GridCell>
+                                );
+                              case 'String':
+                                disabled = true;
+                              case 'Text':
+                              default:
+                                return (
+                                  <GridCell span={12} key={idx}>
+                                    <Field
+                                      style={{ width: '100%' }}
+                                      disabled={disabled}
+                                      component={FormikTextField}
+                                      name={field.source}
+                                      label={startCase(field.source)}
+                                    />
+                                  </GridCell>
+                                );
+                            }
+                          })}
+                          <Actions span={12}>
+                            <Button
+                              unelevated
+                              type="submit"
+                              disabled={isSubmitting || !dirty}>
+                              {isSubmitting ? (
+                                <span>
+                                  <ButtonIcon icon={<CircularProgress />} />{' '}
+                                  Saving...
+                                </span>
+                              ) : (
+                                <span>
+                                  <ButtonIcon icon="save" /> Save
+                                </span>
                               )}
-                            </Actions>
-                            <FabActions>
-                              <Fab
-                                icon="save"
-                                label="Save"
-                                exited={isSubmitting || !dirty}
-                                type="submit"
-                              />
-                              <Fab
-                                icon="add"
-                                type="button"
-                                onClick={() => {
-                                  navigate(`/edit/${resourceParam}/new`);
-                                  resetForm();
+                            </Button>
+                            <Button
+                              outlined
+                              type="reset"
+                              disabled={isSubmitting || !dirty}
+                              onClick={() => resetForm(initialValues)}>
+                              <ButtonIcon icon="undo" /> Undo
+                            </Button>
+                            {canBeDeleted && (
+                              <Mutation
+                                mutation={
+                                  remote.mutation[
+                                    `delete${capitalize(resourceParam)}`
+                                  ]
+                                }
+                                onCompleted={() => {
+                                  navigate(`/list/${plural(resourceParam)}`);
                                 }}
-                              />
-                            </FabActions>
-                          </GridInner>
-                        </Form>
-                      </GridCell>
-                    );
-                  }}
-                </Formik>
-              </Grid>
-            </DefaultLayout>
+                                variables={{ where: { id: resourceId } }}>
+                                {handleDelete => (
+                                  <DangerButton
+                                    type="button"
+                                    outlined
+                                    onClick={() => {
+                                      setSubmitting(true);
+                                      handleDelete();
+                                    }}
+                                    disabled={isSubmitting}>
+                                    <ButtonIcon icon="delete" /> Delete
+                                  </DangerButton>
+                                )}
+                              </Mutation>
+                            )}
+                          </Actions>
+                          <FabActions>
+                            <Fab
+                              icon="save"
+                              label="Save"
+                              exited={isSubmitting || !dirty}
+                              type="submit"
+                            />
+                            <Fab
+                              icon="add"
+                              type="button"
+                              onClick={() => {
+                                navigate(`/edit/${resourceParam}/new`);
+                                resetForm();
+                              }}
+                            />
+                          </FabActions>
+                        </GridInner>
+                      </Form>
+                    </GridCell>
+                  );
+                }}
+              </Formik>
+            </Grid>
           );
         }}
       </Query>

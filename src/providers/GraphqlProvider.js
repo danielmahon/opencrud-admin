@@ -127,7 +127,6 @@ const filterVariables = (name, variables) => {
 // };
 
 const initGraphqlProvider = schema => {
-  // console.log(schema);
   introspectionResults = schema;
 
   const queries = schema.types.reduce((acc, type) => {

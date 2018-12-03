@@ -58,8 +58,10 @@ export const resources = [
     edit: {
       fields: [
         { source: 'title', type: 'Text' },
-        { source: 'id', type: 'Text' },
+        { source: 'id', type: 'String' },
+        { source: 'filename', type: 'String' },
         { source: 'src', type: 'Image' },
+        { source: 'checksum', type: 'String' },
         { source: 'createdAt', type: 'DateTime' },
         { source: 'updatedAt', type: 'DateTime' },
       ],

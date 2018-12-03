@@ -1,6 +1,7 @@
 import React, { PureComponent } from 'react';
 import { Link } from '@reach/router';
 import { Grid, GridCell } from '@rmwc/grid';
+import { Helmet } from 'react-helmet';
 
 import { DefaultLayout } from '../layouts';
 import logo from '../../images/logo.svg';
@@ -18,20 +19,19 @@ class Home extends PureComponent {
   };
   render() {
     return (
-      <DefaultLayout title="Home">
-        <Grid>
-          <GridCell span={12}>
-            <img src={logo} className="App-logo" alt="logo" />
-            <Text>
-              Edit <code>src/App.js</code> and save to reload.
-            </Text>
-            <Text>App: {this.state.count}</Text>
-            <nav>
-              <Link to="/">Home</Link> <Link to="dashboard">Dashboard</Link>
-            </nav>
-          </GridCell>
-        </Grid>
-      </DefaultLayout>
+      <Grid>
+        <Helmet title="Home" />
+        <GridCell span={12}>
+          <img src={logo} className="App-logo" alt="logo" />
+          <Text>
+            Edit <code>src/App.js</code> and save to reload.
+          </Text>
+          <Text>App: {this.state.count}</Text>
+          <nav>
+            <Link to="/">Home</Link> <Link to="dashboard">Dashboard</Link>
+          </nav>
+        </GridCell>
+      </Grid>
     );
   }
 }

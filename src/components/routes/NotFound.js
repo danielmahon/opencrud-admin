@@ -21,14 +21,12 @@ class NotFound extends PureComponent {
   render() {
     const { count } = this.state;
     return (
-      <DefaultLayout title="404 Not Found">
-        <Grid>
-          <GridCell span={12}>
-            <Text use="headline2">404 Not Found</Text>
-            <Text>Returning home in {count}...</Text>
-          </GridCell>
-        </Grid>
-      </DefaultLayout>
+      <Grid>
+        <GridCell span={12}>
+          <Text use="headline2">404 Not Found</Text>
+          <Text>Returning home in {count}...</Text>
+        </GridCell>
+      </Grid>
     );
   }
 }

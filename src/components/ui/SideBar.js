@@ -6,7 +6,7 @@ import {
   DrawerTitle,
   DrawerSubtitle,
 } from '@rmwc/drawer';
-import { List, ListItem, ListItemGraphic } from '@rmwc/list';
+import { List, ListItem, ListItemGraphic, ListDivider } from '@rmwc/list';
 import { Query, Mutation } from 'react-apollo';
 import styled, { withTheme } from 'styled-components';
 import { capitalize, lowerCase } from 'lodash';
@@ -24,6 +24,9 @@ const StyledDrawer = styled(Drawer)`
     padding-top: 64px;
     z-index: 6;
     /* max-height: calc(100vh - 64px); */
+  }
+  .mdc-list-item--disabled {
+    opacity: 0.25;
   }
 `;
 
@@ -43,10 +46,24 @@ class SideBar extends PureComponent {
                   open={sidebar.open}
                   onClose={sidebar.open && toggleSidebar}>
                   <DrawerHeader>
+                    <DrawerTitle>Navigation</DrawerTitle>
+                    <DrawerSubtitle>Move around the site</DrawerSubtitle>
+                  </DrawerHeader>
+                  <DrawerContent style={{ flex: 'none', height: 'auto' }}>
+                    <List>
+                      <ListItem tag={Link} to={'/'}>
+                        <ListItemGraphic icon="home" /> Home
+                      </ListItem>
+                      <ListItem disabled>
+                        <ListItemGraphic icon="help" /> How to Use
+                      </ListItem>
+                    </List>
+                  </DrawerContent>
+                  <DrawerHeader>
                     <DrawerTitle>Resources</DrawerTitle>
                     <DrawerSubtitle>Editable Content Types</DrawerSubtitle>
                   </DrawerHeader>
-                  <DrawerContent>
+                  <DrawerContent style={{ flex: 'auto' }}>
                     <Location>
                       {({ location }) => (
                         <List>

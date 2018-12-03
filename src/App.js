@@ -17,12 +17,15 @@ import ApolloProvider from './providers/ApolloProvider';
 import ThemeProvider from './providers/ThemeProvider';
 import RouteProvider from './providers/RouteProvider';
 import { initGraphqlProvider } from './providers/GraphqlProvider';
+import { DefaultLayout } from './components/layouts';
 
 const App = () => {
   return (
     <ApolloProvider initGraphqlProvider={initGraphqlProvider}>
       <ThemeProvider>
-        <RouteProvider />
+        <DefaultLayout>
+          <RouteProvider />
+        </DefaultLayout>
       </ThemeProvider>
     </ApolloProvider>
   );

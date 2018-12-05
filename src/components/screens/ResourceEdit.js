@@ -19,15 +19,15 @@ import { Formik, Form, Field, ErrorMessage } from 'formik';
 import Uppy from '@uppy/core';
 import AwsS3 from '@uppy/aws-s3';
 import { Dashboard } from '@uppy/react';
-import Url from 'url-parse';
+// import Url from 'url-parse';
 import { Helmet } from 'react-helmet';
 import { Elevation } from '@rmwc/elevation';
 import SparkMD5 from 'spark-md5';
 import ChunkedFileReader from 'chunked-file-reader';
-import hasha from 'hasha';
+// import hasha from 'hasha';
 
 import { remote } from '../../graphs';
-import { DefaultLayout } from '../layouts';
+// import { DefaultLayout } from '../layouts';
 import { filterVariables } from '../../providers/GraphqlProvider';
 
 // import Text from '../ui/Text';
@@ -421,6 +421,7 @@ class ResourceEdit extends PureComponent {
                                 );
                               case 'String':
                                 disabled = true;
+                              // falls through
                               case 'Text':
                               default:
                                 return (

@@ -1,4 +1,4 @@
-import React, { PureComponent, Component } from 'react';
+import React, { PureComponent } from 'react';
 import { Link, navigate } from '@reach/router';
 import { Grid, GridCell } from '@rmwc/grid';
 import { Fab } from '@rmwc/fab';
@@ -34,7 +34,7 @@ import { SimpleDialog } from '@rmwc/dialog';
 import styled from 'styled-components';
 
 import { remote } from '../../graphs';
-import { DefaultLayout } from '../layouts';
+// import { DefaultLayout } from '../layouts';
 import Text from '../ui/Text';
 // import Placeholder from '../ui/Placeholder';
 

@@ -3,11 +3,10 @@ import { Link } from '@reach/router';
 import { Grid, GridCell } from '@rmwc/grid';
 import { Helmet } from 'react-helmet';
 
-import { DefaultLayout } from '../layouts';
 import logo from '../../images/logo.svg';
 import Text from '../ui/Text';
 
-class Home extends PureComponent {
+class Dashboard extends PureComponent {
   state = { count: 0 };
   componentDidMount = () => {
     this.counter = setInterval(() => {
@@ -35,4 +34,4 @@ class Home extends PureComponent {
     );
   }
 }
-export default Home;
+export default Dashboard;

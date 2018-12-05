@@ -16,16 +16,16 @@ import './index.css';
 import ApolloProvider from './providers/ApolloProvider';
 import ThemeProvider from './providers/ThemeProvider';
 import RouteProvider from './providers/RouteProvider';
+import { AuthProvider } from './providers/AuthProvider';
 import { initGraphqlProvider } from './providers/GraphqlProvider';
-import { DefaultLayout } from './components/layouts';
 
 const App = () => {
   return (
     <ApolloProvider initGraphqlProvider={initGraphqlProvider}>
       <ThemeProvider>
-        <DefaultLayout>
+        <AuthProvider>
           <RouteProvider />
-        </DefaultLayout>
+        </AuthProvider>
       </ThemeProvider>
     </ApolloProvider>
   );

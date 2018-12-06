@@ -7,14 +7,19 @@ import {
   DrawerSubtitle,
 } from '@rmwc/drawer';
 import { List, ListItem, ListItemGraphic } from '@rmwc/list';
-import { Query, Mutation } from 'react-apollo';
+import { Mutation } from 'react-apollo';
 import styled, { withTheme } from 'styled-components';
 import { capitalize, lowerCase } from 'lodash';
 import pluralize from 'pluralize';
 import { Location, Link } from '@reach/router';
 
 import { local } from '../../graphs';
-import { AuthConsumer } from '../../providers/AuthProvider';
+import {
+  Subscribe,
+  AuthContainer,
+  SidebarContainer,
+  ResourcesContainer,
+} from '../../state';
 
 const StyledDrawer = styled(Drawer)`
   position: fixed;
@@ -36,72 +41,66 @@ class SideBar extends PureComponent {
     const { theme } = this.props;
     const isPhone = theme.device.isPhone;
     return (
-      <AuthConsumer>
-        {({ isAuth, isLoggingOut, logout }) => (
-          <Query query={local.query.sidebar}>
-            {({ data: { sidebar, resources }, error }) => {
-              return (
-                <Mutation mutation={local.mutation.toggleSidebar} ignoreResults>
-                  {toggleSidebar => (
-                    <StyledDrawer
-                      modal={isPhone && sidebar.open}
-                      dismissible={!isPhone || !sidebar.open}
-                      open={isLoggingOut ? false : sidebar.open}
-                      onClose={
-                        isLoggingOut ? null : sidebar.open && toggleSidebar
-                      }>
-                      <DrawerHeader>
-                        <DrawerTitle>Navigation</DrawerTitle>
-                        <DrawerSubtitle>Move around the site</DrawerSubtitle>
-                      </DrawerHeader>
-                      <DrawerContent style={{ flex: 'none', height: 'auto' }}>
-                        <List>
-                          <ListItem tag={Link} to={'/'}>
-                            <ListItemGraphic icon="home" /> Home
-                          </ListItem>
-                          <ListItem disabled>
-                            <ListItemGraphic icon="help" /> How to Use
-                          </ListItem>
-                        </List>
-                      </DrawerContent>
-                      <DrawerHeader>
-                        <DrawerTitle>Resources</DrawerTitle>
-                        <DrawerSubtitle>Editable Content Types</DrawerSubtitle>
-                      </DrawerHeader>
-                      <DrawerContent style={{ flex: 'auto' }}>
-                        <Location>
-                          {({ location }) => (
-                            <List>
-                              {resources.map(resource => {
-                                const label = capitalize(
-                                  pluralize(resource.type)
-                                );
-                                const pathname = `/list/${lowerCase(
-                                  pluralize(resource.type)
-                                )}`;
-                                return (
-                                  <ListItem
-                                    activated={pathname === location.pathname}
-                                    key={resource.type}
-                                    tag={Link}
-                                    to={pathname}>
-                                    <ListItemGraphic icon={resource.icon} />
-                                    {label}
-                                  </ListItem>
-                                );
-                              })}
-                            </List>
-                          )}
-                        </Location>
-                      </DrawerContent>
-                    </StyledDrawer>
-                  )}
-                </Mutation>
-              );
-            }}
-          </Query>
+      <Subscribe to={[AuthContainer, SidebarContainer, ResourcesContainer]}>
+        {(
+          { state: { isAuth, isLoggingOut }, logout },
+          { state: sidebar },
+          { state: { resources } }
+        ) => (
+          <Mutation mutation={local.mutation.toggleSidebar} ignoreResults>
+            {toggleSidebar => (
+              <StyledDrawer
+                modal={isPhone && sidebar.open}
+                dismissible={!isPhone || !sidebar.open}
+                open={isLoggingOut ? false : sidebar.open}
+                onClose={isLoggingOut ? null : sidebar.open && toggleSidebar}>
+                <DrawerHeader>
+                  <DrawerTitle>Navigation</DrawerTitle>
+                  <DrawerSubtitle>Move around the site</DrawerSubtitle>
+                </DrawerHeader>
+                <DrawerContent style={{ flex: 'none', height: 'auto' }}>
+                  <List>
+                    <ListItem tag={Link} to={'/'}>
+                      <ListItemGraphic icon="home" /> Home
+                    </ListItem>
+                    <ListItem disabled>
+                      <ListItemGraphic icon="help" /> How to Use
+                    </ListItem>
+                  </List>
+                </DrawerContent>
+                <DrawerHeader>
+                  <DrawerTitle>Resources</DrawerTitle>
+                  <DrawerSubtitle>Editable Content Types</DrawerSubtitle>
+                </DrawerHeader>
+                <DrawerContent style={{ flex: 'auto' }}>
+                  <Location>
+                    {({ location }) => (
+                      <List>
+                        {resources.map(resource => {
+                          const label = capitalize(pluralize(resource.type));
+                          const pathname = `/list/${lowerCase(
+                            pluralize(resource.type)
+                          )}`;
+                          return (
+                            <ListItem
+                              activated={pathname === location.pathname}
+                              key={resource.type}
+                              tag={Link}
+                              to={pathname}>
+                              <ListItemGraphic icon={resource.icon} />
+                              {label}
+                            </ListItem>
+                          );
+                        })}
+                      </List>
+                    )}
+                  </Location>
+                </DrawerContent>
+              </StyledDrawer>
+            )}
+          </Mutation>
         )}
-      </AuthConsumer>
+      </Subscribe>
     );
   }
 }

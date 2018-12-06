@@ -17,8 +17,7 @@ import { Transition, animated } from 'react-spring';
 
 import NavigationIcon from './NavigationIcon';
 import { NetworkStatusNotifier } from '../NetworkStatusNotifier';
-import { AuthConsumer } from '../../providers/AuthProvider';
-import { navigate } from '@reach/router';
+import { Subscribe, AuthContainer } from '../../state';
 
 const LoadingIndicator = styled(LinearProgress)`
   position: absolute;
@@ -50,16 +49,14 @@ const Title = styled(Typography).attrs({
 `;
 
 export default class AppBar extends PureComponent {
-  state = { show: true };
   static defaultProps = { title: 'Title' };
   render() {
     const { title } = this.props;
-    const { show } = this.state;
     return (
       <ThemeConsumer>
         {theme => (
-          <AuthConsumer>
-            {({ isAuth, isLoggingOut, logout }) => (
+          <Subscribe to={[AuthContainer]}>
+            {({ state: { isAuth, isLoggingOut }, logout }) => (
               <Transition
                 native
                 items={isAuth && !isLoggingOut}
@@ -121,7 +118,7 @@ export default class AppBar extends PureComponent {
                 }
               </Transition>
             )}
-          </AuthConsumer>
+          </Subscribe>
         )}
       </ThemeConsumer>
     );

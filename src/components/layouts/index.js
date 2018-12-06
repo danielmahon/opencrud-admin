@@ -4,9 +4,9 @@ import { DrawerAppContent } from '@rmwc/drawer';
 import styled from 'styled-components';
 import { Helmet } from 'react-helmet';
 
-import { AuthConsumer } from '../../providers/AuthProvider';
 import AppBar from '../ui/AppBar';
 import SideBar from '../ui/SideBar';
+import { Subscribe, AuthContainer } from '../../state';
 
 const StyledDrawerAppContent = styled(DrawerAppContent)`
   transition: margin-left 250ms;
@@ -21,8 +21,8 @@ export class MainLayout extends PureComponent {
     const { children } = this.props;
     const { title } = this.state;
     return (
-      <AuthConsumer>
-        {({ isAuth }) => {
+      <Subscribe to={[AuthContainer]}>
+        {({ state: { isAuth } }) => {
           if (!isAuth) return <Redirect to="/login" noThrow />;
           return (
             <Fragment>
@@ -36,7 +36,7 @@ export class MainLayout extends PureComponent {
             </Fragment>
           );
         }}
-      </AuthConsumer>
+      </Subscribe>
     );
   }
 }
@@ -44,12 +44,12 @@ export class AuthLayout extends PureComponent {
   render() {
     const { children } = this.props;
     return (
-      <AuthConsumer>
-        {({ isAuth }) => {
+      <Subscribe to={[AuthContainer]}>
+        {({ state: { isAuth } }) => {
           if (isAuth) return null;
           return children;
         }}
-      </AuthConsumer>
+      </Subscribe>
     );
   }
 }

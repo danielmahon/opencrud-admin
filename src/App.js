@@ -16,17 +16,18 @@ import './index.css';
 import ApolloProvider from './providers/ApolloProvider';
 import ThemeProvider from './providers/ThemeProvider';
 import RouteProvider from './providers/RouteProvider';
-import { AuthProvider } from './providers/AuthProvider';
+import { UnstatedProvider } from './providers/UnstatedProvider';
 import { initGraphqlProvider } from './providers/GraphqlProvider';
+import { containers } from './state';
 
 const App = () => {
   return (
     <ApolloProvider initGraphqlProvider={initGraphqlProvider}>
-      <ThemeProvider>
-        <AuthProvider>
+      <UnstatedProvider containers={containers}>
+        <ThemeProvider>
           <RouteProvider />
-        </AuthProvider>
-      </ThemeProvider>
+        </ThemeProvider>
+      </UnstatedProvider>
     </ApolloProvider>
   );
 };

@@ -1,4 +1,4 @@
-import React, { Component, Fragment } from 'react';
+import React, { Fragment } from 'react';
 import { Router, Location } from '@reach/router';
 import { Transition, animated } from 'react-spring';
 
@@ -9,12 +9,12 @@ import ResourceEdit from '../components/screens/ResourceEdit';
 import NotFound from '../components/screens/NotFound';
 import Login from '../components/screens/Login';
 import Logout from '../components/screens/Logout';
-import { AuthConsumer } from '../providers/AuthProvider';
+import { Subscribe, AuthContainer } from '../state';
 
 const SlideTransitionRouter = ({ children }) => {
   return (
-    <AuthConsumer>
-      {({ isLoggingOut }) => (
+    <Subscribe to={[AuthContainer]}>
+      {({ state: { isLoggingOut } }) => (
         <Location>
           {({ location }) => (
             <Transition
@@ -41,7 +41,7 @@ const SlideTransitionRouter = ({ children }) => {
           )}
         </Location>
       )}
-    </AuthConsumer>
+    </Subscribe>
   );
 };
 const FadeRouter = ({ children }) => {

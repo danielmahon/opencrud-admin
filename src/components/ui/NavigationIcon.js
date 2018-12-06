@@ -1,10 +1,12 @@
 import React from 'react';
 import { TopAppBarNavigationIcon } from '@rmwc/top-app-bar';
 import { Icon } from '@rmwc/icon';
-import { Query, Mutation } from 'react-apollo';
+import { Mutation } from 'react-apollo';
 import { Transition } from 'react-spring';
+import { Subscribe } from 'unstated';
 
 import { local } from '../../graphs';
+import { SidebarContainer } from '../../state';
 
 const AnimatedIcon = ({ open }) => {
   return (
@@ -33,20 +35,18 @@ const AnimatedIcon = ({ open }) => {
 
 const NavigationIcon = () => {
   return (
-    <Query query={local.query.sidebar}>
-      {({ data: { sidebar } }) => {
-        return (
-          <Mutation mutation={local.mutation.toggleSidebar} ignoreResults>
-            {toggleSidebar => (
-              <TopAppBarNavigationIcon
-                icon={<AnimatedIcon open={sidebar.open} />}
-                onClick={toggleSidebar}
-              />
-            )}
-          </Mutation>
-        );
-      }}
-    </Query>
+    <Subscribe to={[SidebarContainer]}>
+      {({ state: sidebar }) => (
+        <Mutation mutation={local.mutation.toggleSidebar} ignoreResults>
+          {toggleSidebar => (
+            <TopAppBarNavigationIcon
+              icon={<AnimatedIcon open={sidebar.open} />}
+              onClick={toggleSidebar}
+            />
+          )}
+        </Mutation>
+      )}
+    </Subscribe>
   );
 };
 

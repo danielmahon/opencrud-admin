@@ -6,13 +6,13 @@ import { WebSocketLink } from 'apollo-link-ws';
 import { getMainDefinition } from 'apollo-utilities';
 import { HttpLink } from 'apollo-link-http';
 import { onError } from 'apollo-link-error';
-import { withClientState } from 'apollo-link-state';
+// import { withClientState } from 'apollo-link-state';
 import { ApolloLink, split } from 'apollo-link';
 import apolloLogger from 'apollo-link-logger';
 import { introspectionQuery } from 'graphql';
 import gql from 'graphql-tag';
 
-import { resolvers, defaults } from '../state';
+// import { resolvers, defaults } from '../state';
 import { networkStatusNotifierLink } from '../components/NetworkStatusNotifier';
 import { AUTH_TOKEN } from '../config';
 
@@ -26,7 +26,7 @@ class EnhancedApolloProvider extends PureComponent {
 
     // const cache = new InMemoryCache({ dataIdFromObject: o => o.id });
     const cache = new InMemoryCache();
-    const stateLink = withClientState({ cache, resolvers, defaults });
+    // const stateLink = withClientState({ cache, resolvers, defaults });
 
     const middlewareLink = new ApolloLink((operation, forward) => {
       // get the authentication token from local storage if it exists
@@ -83,20 +83,20 @@ class EnhancedApolloProvider extends PureComponent {
           ? ApolloLink.from([
               errorLink,
               networkStatusNotifierLink,
-              stateLink,
+              // stateLink,
               link,
             ])
           : ApolloLink.from([
               apolloLogger,
               errorLink,
               networkStatusNotifierLink,
-              stateLink,
+              // stateLink,
               link,
             ]),
       connectToDevTools: process.env.NODE_ENV !== 'production',
     });
 
-    client.onResetStore(stateLink.writeDefaults);
+    // client.onResetStore(stateLink.writeDefaults);
 
     this._client = client;
   }
@@ -111,6 +111,7 @@ class EnhancedApolloProvider extends PureComponent {
       fetchPolicy: 'network-only',
     });
     initGraphqlProvider(result.data.__schema);
+    // Show app
     this.setState({ ready: true });
   };
   render() {

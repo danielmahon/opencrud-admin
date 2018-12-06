@@ -1,6 +1,6 @@
 import { TypeKind } from 'graphql';
 import gql from 'graphql-tag';
-import { camelCase, capitalize, chain, startsWith, endsWith } from 'lodash';
+import { camelCase, capitalize, chain } from 'lodash';
 import pluralize from 'pluralize';
 
 import { resources as configResources } from '../config';
@@ -133,28 +133,20 @@ const initGraphqlProvider = schema => {
     if (type.name !== 'Query' && type.name !== 'Mutation') return acc;
     return [...acc, ...type.fields];
   }, []);
-  const mutationFields = schema.types.find(type => type.name === 'Mutation')
-    .fields;
-  const queryFields = schema.types.find(type => type.name === 'Query').fields;
-  const isMutation = query => {
-    return mutationFields.some(field => field.name === query.name);
-  };
-  const isQuery = query => {
-    return queryFields.some(field => field.name === query.name);
-  };
   const types = schema.types.filter(
     type => type.name !== 'Query' && type.name !== 'Mutation'
   );
-  // const potentialResources = types.filter(type => {
-  //   return queries.some(query => query.name === camelCase(type.name));
-  // });
-  const knownResources = types.map(r => r.name);
+  const potentialResources = types.filter(type => {
+    return queries.some(query => query.name === camelCase(type.name));
+  });
+  const knownResources = potentialResources.map(r => r.name);
+
+  console.log(configResources);
+  console.log(potentialResources);
 
   // Generate remote queries
-  queries.forEach(query => {
-    const type = getType(query).name.replace('Connection', '');
-    const name = query.name;
-    const resource = types.find(r => r.name === type);
+  configResources.forEach(({ type }) => {
+    const resource = potentialResources.find(r => r.name === type);
 
     if (!resource) {
       throw new Error(
@@ -164,20 +156,30 @@ const initGraphqlProvider = schema => {
       );
     }
 
+    console.log(queries);
+    // console.log(resource);
+
+    let name;
+    let query;
+
     // CREATE ONE query
-    if (resource && startsWith(name, 'create')) {
+    name = `create${capitalize(type)}`;
+    query = queries.find(q => q.name === name);
+    if (query) {
       remote.mutation[name] = gql`
           mutation ${name}(${buildVars(query.args)}) {
             ${name}(${buildArgs(query.args)}) {
               ${buildFields(resource.fields, types)}
             }
+            ${fragments.resources}
           }
         `;
-      return;
     }
 
     // READ MANY query
-    if (resource && endsWith(name, 'Connection')) {
+    name = `${camelCase(pluralize(type))}Connection`;
+    query = queries.find(q => q.name === name);
+    if (query) {
       remote.query[camelCase(pluralize(type))] = gql`
       query ${name}(${buildVars(query.args)}) {
         ${name}(${buildArgs(query.args)}) {
@@ -190,74 +192,52 @@ const initGraphqlProvider = schema => {
             count
           }
         }
+        ${fragments.resources}
       }
     `;
-      return;
+    }
+
+    // READ ONE query
+    name = camelCase(type);
+    query = queries.find(q => q.name === name);
+    if (query) {
+      remote.query[name] = gql`
+      query ${name}(${buildVars(query.args)}) {
+        ${name}(${buildArgs(query.args)}) {
+          ${buildFields(resource.fields, types)}
+        }
+        ${fragments.resources}
+      }
+    `;
     }
 
     // UPDATE ONE query
-    if (resource && startsWith(name, 'update')) {
+    name = `update${capitalize(type)}`;
+    query = queries.find(q => q.name === name);
+    if (query) {
       remote.mutation[name] = gql`
-          mutation ${name}(${buildVars(query.args)}) {
-            ${name}(${buildArgs(query.args)}) {
-              ${buildFields(resource.fields, types)}
-            }
-          }
-        `;
-      return;
+      mutation ${name}(${buildVars(query.args)}) {
+        ${name}(${buildArgs(query.args)}) {
+          ${buildFields(resource.fields, types)}
+        }
+        ${fragments.resources}
+      }
+    `;
     }
 
     // DELETE ONE query
-    if (resource && startsWith(name, 'delete')) {
+    name = `delete${capitalize(type)}`;
+    query = queries.find(q => q.name === name);
+    if (query) {
       remote.mutation[name] = gql`
-          mutation ${name}(${buildVars(query.args)}) {
-            ${name}(${buildArgs(query.args)}) {
-              ${buildFields(resource.fields, types, {
-                excludeReferences: true,
-              })}
-            }
-          }
-        `;
-      return;
-    }
-
-    // Add query
-    if (isQuery(query)) {
-      const vars = query.args.length ? `(${buildVars(query.args)})` : '';
-      const args = query.args.length ? `(${buildArgs(query.args)})` : '';
-      remote.query[name] = gql`
-        query ${name}${vars} {
-          ${name}${args} {
-            ${buildFields(resource.fields, types)}
-          }
+      mutation ${name}(${buildVars(query.args)}) {
+        ${name}(${buildArgs(query.args)}) {
+          ${buildFields(resource.fields, types, { excludeReferences: true })}
         }
-      `;
-      return;
-    }
-
-    // Add mutation
-    if (isMutation(query)) {
-      const vars = query.args.length ? `(${buildVars(query.args)})` : '';
-      const args = query.args.length ? `(${buildArgs(query.args)})` : '';
-      remote.mutation[name] = gql`
-      mutation ${name}${vars} {
-        ${name}${args} {
-          ${buildFields(resource.fields, types, {
-            excludeReferences: true,
-          })}
-        }
+        ${fragments.resources}
       }
     `;
-      return;
     }
-
-    // Handle all else
-    // TODO: Remove once we "know" all queries will be handled
-
-    console.log(query);
-    console.log(resource);
-
-    throw new Error(`Unknown query ${query.name}! Check your configuration.}`);
   });
 
   // for (const q of Object.values(remote.query)) {

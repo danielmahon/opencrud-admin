@@ -11,12 +11,15 @@ import {
   DataTableRow,
   DataTableCell,
 } from '@rmwc/data-table';
+import { Card, CardAction, CardActions, CardActionIcons } from '@rmwc/card';
 import { Checkbox } from '@rmwc/checkbox';
+import { Typography } from '@rmwc/typography';
 import { Button, ButtonIcon } from '@rmwc/button';
 import { IconButton } from '@rmwc/icon-button';
 import { Query, Mutation } from 'react-apollo';
 import Imgix from 'react-imgix';
 import { Helmet } from 'react-helmet';
+import { Chip, ChipSet } from '@rmwc/chip';
 
 import {
   truncate,
@@ -33,9 +36,12 @@ import { singular } from 'pluralize';
 import { SimpleDialog } from '@rmwc/dialog';
 import styled from 'styled-components';
 
+import { Subscribe, ResourcesContainer } from '../../state';
 import { remote } from '../../graphs';
+import { getType, isSubObject } from '../../providers/GraphqlProvider';
 // import { DefaultLayout } from '../layouts';
 import Text from '../ui/Text';
+import { Select } from 'rmwc';
 // import Placeholder from '../ui/Placeholder';
 
 const FabActions = styled('div')`
@@ -46,6 +52,59 @@ const FabActions = styled('div')`
     margin-right: 1rem;
   }
 `;
+const StyledDataTable = styled(DataTable)`
+  width: 100%;
+  border-left: none;
+  border-right: none;
+  table {
+    width: 100%;
+  }
+`;
+const SmallChip = styled(Chip)`
+  font-size: 0.75rem;
+`;
+const CardHeader = styled(Typography).attrs({
+  use: 'headline6',
+})`
+  margin: 1rem 1.5rem;
+`;
+const Pagination = styled(CardActions)`
+  justify-content: flex-end;
+`;
+const PaginationRows = styled(Typography).attrs({
+  use: 'caption',
+  tag: 'div',
+})``;
+const PaginationSelect = styled(Select)`
+  margin: 0 0.5rem;
+  font-size: 0.75rem;
+  height: 36px;
+  transform: rotate(0);
+  &:not(.mdc-select--disabled) {
+    background: none;
+  }
+  .mdc-select__native-control {
+    height: 36px;
+    padding-top: 0;
+    padding-bottom: 0;
+    font-size: 0.75rem;
+    border-bottom: none;
+  }
+  &.mdc-select--focused .mdc-select__dropdown-icon {
+    transform: rotate(180deg);
+  }
+  .mdc-select__dropdown-icon {
+    right: 0.25rem;
+    bottom: 0.375rem;
+  }
+`;
+const PaginationIcons = styled(CardActionIcons)`
+  margin-left: 0.5rem;
+  flex-grow: 0;
+`;
+const FabActionsSpacer = styled(GridCell)`
+  height: 64px;
+`;
 
 class ResourceList extends PureComponent {
   state = {
@@ -53,6 +112,8 @@ class ResourceList extends PureComponent {
     sortDir: 1,
     active: null,
     dialog: { open: false, body: null },
+    first: 10,
+    page: 1,
   };
   componentDidMount() {
     this.handleScrollTop();
@@ -67,52 +128,59 @@ class ResourceList extends PureComponent {
       window.scrollTo(0, 0);
     });
   };
-  formatCell = ({ item, field, important = false }) => {
-    const value = get(item, field.source);
+  formatCell = ({ item, field, type, reference, important = false }) => {
+    const value = get(item, field.name);
     if (value === undefined) {
       throw new Error('Invalid source, check config.');
     }
-    switch (field.type.split(':')[0]) {
-      case 'Image':
-        return (
-          <Imgix
-            src={value}
-            width={80}
-            height={72}
-            htmlAttributes={{ style: { verticalAlign: 'bottom' } }}
-          />
-        );
-      case 'Boolean':
-        return <Checkbox checked={value} disabled />;
-      case 'Reference':
-        const referenceType = field.type.split(':')[1];
-        const referenceObject = get(item, field.source.split('.')[0]);
-        return (
-          <Button
-            dense
-            tag={Link}
-            to={`/edit/${camelCase(referenceType)}/${referenceObject.id}`}>
-            <ButtonIcon icon="link" />
-            {value}
-          </Button>
-        );
-      case 'DateTime':
-        const date = DateTime.fromISO(value);
-        if (date.isValid) {
-          return date.toLocaleString();
-        }
-        break;
-      case 'Text':
-      default:
-        return (
-          <Text use={important ? 'subtitle2' : 'body2'}>
-            {truncate(value.toString(), { length: 20 })}
-          </Text>
-        );
+    if (type === 'Image') {
+      return (
+        <Imgix
+          src={value}
+          width={80}
+          height={72}
+          htmlAttributes={{ style: { verticalAlign: 'bottom' } }}
+        />
+      );
+    }
+    if (type === 'Boolean') {
+      return <Checkbox checked={value} disabled />;
+    }
+    if (type === 'DateTime') {
+      const date = DateTime.fromISO(value);
+      return date.isValid ? date.toLocaleString() : 'Error:' + value;
+    }
+    if (type === 'ENUM') {
+      return (
+        <ChipSet>
+          <SmallChip text={value} />
+        </ChipSet>
+      );
+    }
+    if (type === 'String') {
+      return (
+        <Text use={important ? 'subtitle2' : 'body2'}>
+          {truncate(value.toString(), { length: 20 })}
+        </Text>
+      );
+    }
+    if (isSubObject(field)) {
+      const referenceObject = get(item, field.name);
+      const referenceValue =
+        value[reference] || value.name || value.title || value.id;
+      return (
+        <Button
+          dense
+          tag={Link}
+          to={`/edit/${camelCase(type)}/${referenceObject.id}`}>
+          <ButtonIcon icon="link" />
+          {truncate(referenceValue, { length: 20 })}
+        </Button>
+      );
     }
   };
   render() {
-    const { sortKey, sortDir } = this.state;
+    const { sortKey, sortDir, first, page } = this.state;
     const { resource: resourceParam } = this.props;
     // Format orderBy
     const orderBy =
@@ -121,137 +189,208 @@ class ResourceList extends PureComponent {
       remote.mutation,
       `delete${capitalize(singular(resourceParam))}`
     );
+    const queryName = `${camelCase(resourceParam)}Connection`;
     return (
       <Grid>
         <Helmet title={`List ${capitalize(resourceParam)}`} />
-
         <GridCell span={12}>
-          <Query
-            fetchPolicy="cache-and-network"
-            query={remote.query[resourceParam]}
-            variables={{ orderBy }}>
-            {({ data, refetch, error }) => {
-              if (error) return <pre>{error.toString()}</pre>;
-              const queryName = `${camelCase(resourceParam)}Connection`;
-              if (!data[queryName]) return null;
-              const resource = data.resources.find(
-                r => r.type === singular(capitalize(resourceParam))
-              );
-              const items = data[queryName].edges
-                .map(e => e.node)
-                .map(node => omit(node, '__typename'));
-              if (!items.length) {
-                return <p>No results!</p>;
-              }
-              return (
-                <DataTable style={{ maxWidth: '100%' }}>
-                  <DataTableContent>
-                    <DataTableHead>
-                      <DataTableRow>
-                        {resource.list.fields.map((field, i) => {
-                          const sortable = field.source.indexOf('.') === -1;
-                          return (
-                            <DataTableHeadCell
-                              alignMiddle
-                              key={field.source}
-                              sort={
-                                sortable && sortKey === field.source
-                                  ? sortDir
-                                  : null
-                              }
-                              onSortChange={
-                                sortable
-                                  ? direction => {
-                                      this.setState({
-                                        sortKey: field.source,
-                                        sortDir: direction,
-                                      });
+          <Subscribe to={[ResourcesContainer]}>
+            {({ state: { resources } }) => (
+              <Query
+                fetchPolicy="cache-and-network"
+                query={remote.query[queryName]}
+                variables={{ orderBy, first, skip: page * first - first }}>
+                {({ data, refetch, error }) => {
+                  if (error) return <pre>{error.toString()}</pre>;
+                  if (!data[queryName]) return null;
+
+                  const total = data[queryName].aggregate.count;
+                  const start = page * first - first;
+                  const end = Math.min(start + first, total);
+
+                  const resource = resources.find(
+                    r => r.type === singular(capitalize(resourceParam))
+                  );
+                  const schemaFields = remote.schema.types.find(
+                    type => type.name === capitalize(resource.type)
+                  ).fields;
+
+                  const items = data[queryName].edges
+                    .map(e => e.node)
+                    .map(node => omit(node, '__typename'));
+
+                  if (!items.length) {
+                    return <p>No results!</p>;
+                  }
+
+                  return (
+                    <Card>
+                      <CardHeader>{capitalize(resourceParam)}</CardHeader>
+                      <StyledDataTable>
+                        <DataTableContent>
+                          <DataTableHead>
+                            <DataTableRow>
+                              {resource.list.fields.map((field, i) => {
+                                const sortable =
+                                  field.source.indexOf('.') === -1;
+                                return (
+                                  <DataTableHeadCell
+                                    alignMiddle
+                                    key={field.source}
+                                    sort={
+                                      sortable && sortKey === field.source
+                                        ? sortDir
+                                        : null
                                     }
-                                  : null
-                              }>
-                              {startCase(field.source)}
-                            </DataTableHeadCell>
-                          );
-                        })}
-                        <DataTableHeadCell />
-                        {canBeDeleted && <DataTableHeadCell />}
-                      </DataTableRow>
-                    </DataTableHead>
-                    <DataTableBody>
-                      {items.map((item, idx) => {
-                        return (
-                          <DataTableRow
-                            key={item.id}
-                            activated={this.state.active === idx}
-                            onDoubleClick={() => {
-                              navigate(
-                                `/edit/${singular(resourceParam)}/${item.id}`
-                              );
-                            }}
-                            onClick={() => {
-                              this.setState({ active: idx });
-                            }}>
-                            {resource.list.fields.map((field, fieldIdx) => {
-                              const isImage = field.type === 'Image';
+                                    onSortChange={
+                                      sortable
+                                        ? direction => {
+                                            this.setState({
+                                              sortKey: field.source,
+                                              sortDir: direction,
+                                            });
+                                          }
+                                        : null
+                                    }>
+                                    {startCase(field.source)}
+                                  </DataTableHeadCell>
+                                );
+                              })}
+                              <DataTableHeadCell />
+                              {canBeDeleted && <DataTableHeadCell />}
+                            </DataTableRow>
+                          </DataTableHead>
+                          <DataTableBody>
+                            {items.map((item, idx) => {
                               return (
-                                <DataTableCell
-                                  key={field.source}
-                                  style={{
-                                    padding: isImage ? 0 : null,
+                                <DataTableRow
+                                  key={item.id}
+                                  activated={this.state.active === idx}
+                                  onDoubleClick={() => {
+                                    navigate(
+                                      `/edit/${singular(resourceParam)}/${
+                                        item.id
+                                      }`
+                                    );
+                                  }}
+                                  onClick={() => {
+                                    this.setState({ active: idx });
                                   }}>
-                                  {this.formatCell({
-                                    item: items[idx],
-                                    field: field,
-                                    important: fieldIdx === 0,
-                                  })}
-                                </DataTableCell>
-                              );
-                            })}
-                            <DataTableCell>
-                              <IconButton
-                                icon="edit"
-                                onClick={() => {
-                                  navigate(
-                                    `/edit/${singular(resourceParam)}/${
-                                      item.id
-                                    }`
-                                  );
-                                }}
-                              />
-                            </DataTableCell>
-                            {canBeDeleted && (
-                              <DataTableCell>
-                                <Mutation
-                                  mutation={
-                                    remote.mutation[
-                                      `delete${capitalize(
-                                        singular(resourceParam)
-                                      )}`
-                                    ]
-                                  }
-                                  onCompleted={refetch}
-                                  variables={{ where: { id: item.id } }}>
-                                  {handleDelete => (
+                                  {resource.list.fields.map(
+                                    (field, fieldIdx) => {
+                                      const schemaField = schemaFields.find(
+                                        f => f.name === field.source
+                                      );
+                                      const name = schemaField.name;
+                                      const typeName = getType(schemaField)
+                                        .name;
+                                      const typeKind = schemaField.type.kind;
+                                      const type = field.type
+                                        ? field.type
+                                        : typeKind === 'ENUM'
+                                        ? typeKind
+                                        : typeName;
+
+                                      const isImage = field.type === 'Image';
+
+                                      return (
+                                        <DataTableCell
+                                          key={name}
+                                          style={{
+                                            padding: isImage ? 0 : null,
+                                          }}>
+                                          {this.formatCell({
+                                            item: items[idx],
+                                            field: schemaField,
+                                            type: type,
+                                            reference: field.reference,
+                                            important: fieldIdx === 0,
+                                          })}
+                                        </DataTableCell>
+                                      );
+                                    }
+                                  )}
+                                  <DataTableCell>
                                     <IconButton
-                                      type="button"
-                                      icon="delete"
+                                      icon="edit"
                                       onClick={() => {
-                                        handleDelete();
+                                        navigate(
+                                          `/edit/${singular(resourceParam)}/${
+                                            item.id
+                                          }`
+                                        );
                                       }}
                                     />
+                                  </DataTableCell>
+                                  {canBeDeleted && (
+                                    <DataTableCell>
+                                      <Mutation
+                                        mutation={
+                                          remote.mutation[
+                                            `delete${capitalize(
+                                              singular(resourceParam)
+                                            )}`
+                                          ]
+                                        }
+                                        onError={error => window.alert(error)}
+                                        onCompleted={refetch}
+                                        variables={{ where: { id: item.id } }}>
+                                        {handleDelete => (
+                                          <IconButton
+                                            type="button"
+                                            icon="delete"
+                                            onClick={() => {
+                                              handleDelete();
+                                            }}
+                                          />
+                                        )}
+                                      </Mutation>
+                                    </DataTableCell>
                                   )}
-                                </Mutation>
-                              </DataTableCell>
-                            )}
-                          </DataTableRow>
-                        );
-                      })}
-                    </DataTableBody>
-                  </DataTableContent>
-                </DataTable>
-              );
-            }}
-          </Query>
+                                </DataTableRow>
+                              );
+                            })}
+                          </DataTableBody>
+                        </DataTableContent>
+                      </StyledDataTable>
+                      <Pagination>
+                        <PaginationRows>Rows per page:</PaginationRows>
+                        <PaginationSelect
+                          onChange={evt => {
+                            this.setState({
+                              first: parseInt(evt.target.value, 10),
+                            });
+                          }}
+                          value={first}
+                          options={[
+                            { label: 5, value: 5 },
+                            { label: 10, value: 10 },
+                            { label: 25, value: 25 },
+                            { label: 50, value: 50 },
+                          ]}
+                        />
+                        <Typography use="caption" tag="div" style={{}}>
+                          {start}-{end} of {total}
+                        </Typography>
+                        <PaginationIcons>
+                          <CardAction
+                            icon="chevron_left"
+                            disabled={page < 2}
+                            onClick={() => this.setState({ page: page - 1 })}
+                          />
+                          <CardAction
+                            icon="chevron_right"
+                            disabled={page * first > total - 1}
+                            onClick={() => this.setState({ page: page + 1 })}
+                          />
+                        </PaginationIcons>
+                      </Pagination>
+                    </Card>
+                  );
+                }}
+              </Query>
+            )}
+          </Subscribe>
           <SimpleDialog
             title="Confirm Delete"
             body={this.state.dialog.body}
@@ -261,16 +400,17 @@ class ResourceList extends PureComponent {
               this.setState({ dialog: { open: false } });
             }}
           />
-          <FabActions>
-            <Fab
-              icon="add"
-              type="button"
-              onClick={() => {
-                navigate(`/edit/${singular(resourceParam)}/new`);
-              }}
-            />
-          </FabActions>
         </GridCell>
+        <FabActions>
+          <Fab
+            icon="add"
+            type="button"
+            onClick={() => {
+              navigate(`/edit/${singular(resourceParam)}/new`);
+            }}
+          />
+        </FabActions>
+        <FabActionsSpacer />
       </Grid>
     );
   }

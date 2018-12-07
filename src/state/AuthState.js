@@ -1,11 +1,14 @@
 import { PersistContainer } from './index';
 
-class AuthContainer extends PersistContainer {
-  state = { isAuth: false, isLoggingOut: false, token: null };
-  login = token => {
-    return this.setState({ isAuth: true, token: token });
+class AuthState extends PersistContainer {
+  state = { isAuth: false, isLoggingOut: false, token: null, user: null };
+  handleLogin = ({ token, user }) => {
+    return this.setState({ isAuth: true, token, user });
   };
-  logout = async () => {
+  getToken = () => {
+    return this.state.token;
+  };
+  handleLogout = async () => {
     await this.setState({ isLoggingOut: true });
     return new Promise(resolve => {
       // Wait until logout animations complete
@@ -15,6 +18,7 @@ class AuthContainer extends PersistContainer {
           isAuth: false,
           isLoggingOut: false,
           token: null,
+          user: null,
         });
         resolve();
       }, 375);
@@ -22,4 +26,4 @@ class AuthContainer extends PersistContainer {
   };
 }
 
-export { AuthContainer };
+export { AuthState };

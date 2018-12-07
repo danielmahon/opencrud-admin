@@ -1,12 +1,8 @@
 import { TypeKind } from 'graphql';
 import gql from 'graphql-tag';
-import { camelCase, capitalize, chain, startsWith, endsWith } from 'lodash';
-import pluralize from 'pluralize';
+import { chain, startsWith, endsWith } from 'lodash';
 
-import { resources as configResources } from '../config';
-import { remote, fragments } from '../graphs';
-
-let introspectionResults = null;
+import { remote } from '../graphs';
 
 const isNotGraphqlPrivateType = type => !type.name.startsWith('__');
 
@@ -79,7 +75,7 @@ const buildArgs = args => {
 // };
 
 const filterVariables = (name, variables) => {
-  const queries = introspectionResults.types.reduce((acc, type) => {
+  const queries = remote.schema.types.reduce((acc, type) => {
     if (type.name !== 'Query' && type.name !== 'Mutation') return acc;
     return [...acc, ...type.fields];
   }, []);
@@ -95,7 +91,7 @@ const filterVariables = (name, variables) => {
 
   // Filter update data based on InputType Fields
   const dataArg = query.args.find(a => a.name === 'data');
-  const inputType = introspectionResults.types.find(
+  const inputType = remote.schema.types.find(
     t => t.name === dataArg.type.ofType.name
   );
 
@@ -126,59 +122,60 @@ const filterVariables = (name, variables) => {
 //   };
 // };
 
-const initGraphqlProvider = schema => {
-  introspectionResults = schema;
+const initGraphqlProvider = () =>
+  new Promise(resolve => {
+    const queries = remote.schema.types.reduce((acc, type) => {
+      if (type.name !== 'Query' && type.name !== 'Mutation') return acc;
+      return [...acc, ...type.fields];
+    }, []);
+    const mutationFields = remote.schema.types.find(
+      type => type.name === 'Mutation'
+    ).fields;
+    const queryFields = remote.schema.types.find(type => type.name === 'Query')
+      .fields;
+    const isMutation = query => {
+      return mutationFields.some(field => field.name === query.name);
+    };
+    const isQuery = query => {
+      return queryFields.some(field => field.name === query.name);
+    };
+    const types = remote.schema.types.filter(
+      type => type.name !== 'Query' && type.name !== 'Mutation'
+    );
+    // const potentialResources = types.filter(type => {
+    //   return queries.some(query => query.name === camelCase(type.name));
+    // });
+    const knownResources = types.map(r => r.name);
 
-  const queries = schema.types.reduce((acc, type) => {
-    if (type.name !== 'Query' && type.name !== 'Mutation') return acc;
-    return [...acc, ...type.fields];
-  }, []);
-  const mutationFields = schema.types.find(type => type.name === 'Mutation')
-    .fields;
-  const queryFields = schema.types.find(type => type.name === 'Query').fields;
-  const isMutation = query => {
-    return mutationFields.some(field => field.name === query.name);
-  };
-  const isQuery = query => {
-    return queryFields.some(field => field.name === query.name);
-  };
-  const types = schema.types.filter(
-    type => type.name !== 'Query' && type.name !== 'Mutation'
-  );
-  // const potentialResources = types.filter(type => {
-  //   return queries.some(query => query.name === camelCase(type.name));
-  // });
-  const knownResources = types.map(r => r.name);
+    // Generate remote queries
+    queries.forEach(query => {
+      const type = getType(query).name.replace('Connection', '');
+      const name = query.name;
+      const resource = types.find(r => r.name === type);
 
-  // Generate remote queries
-  queries.forEach(query => {
-    const type = getType(query).name.replace('Connection', '');
-    const name = query.name;
-    const resource = types.find(r => r.name === type);
+      if (!resource) {
+        throw new Error(
+          `Unknown resource ${type}. Make sure it has been declared on your server side schema. Known resources are ${knownResources.join(
+            ', '
+          )}`
+        );
+      }
 
-    if (!resource) {
-      throw new Error(
-        `Unknown resource ${type}. Make sure it has been declared on your server side schema. Known resources are ${knownResources.join(
-          ', '
-        )}`
-      );
-    }
-
-    // CREATE ONE query
-    if (resource && startsWith(name, 'create')) {
-      remote.mutation[name] = gql`
+      // CREATE ONE query
+      if (resource && startsWith(name, 'create')) {
+        remote.mutation[name] = gql`
           mutation ${name}(${buildVars(query.args)}) {
             ${name}(${buildArgs(query.args)}) {
               ${buildFields(resource.fields, types)}
             }
           }
         `;
-      return;
-    }
+        return;
+      }
 
-    // READ MANY query
-    if (resource && endsWith(name, 'Connection')) {
-      remote.query[camelCase(pluralize(type))] = gql`
+      // READ MANY query
+      if (resource && endsWith(name, 'Connection')) {
+        remote.query[name] = gql`
       query ${name}(${buildVars(query.args)}) {
         ${name}(${buildArgs(query.args)}) {
           edges {
@@ -192,24 +189,24 @@ const initGraphqlProvider = schema => {
         }
       }
     `;
-      return;
-    }
+        return;
+      }
 
-    // UPDATE ONE query
-    if (resource && startsWith(name, 'update')) {
-      remote.mutation[name] = gql`
+      // UPDATE ONE query
+      if (resource && startsWith(name, 'update')) {
+        remote.mutation[name] = gql`
           mutation ${name}(${buildVars(query.args)}) {
             ${name}(${buildArgs(query.args)}) {
               ${buildFields(resource.fields, types)}
             }
           }
         `;
-      return;
-    }
+        return;
+      }
 
-    // DELETE ONE query
-    if (resource && startsWith(name, 'delete')) {
-      remote.mutation[name] = gql`
+      // DELETE ONE query
+      if (resource && startsWith(name, 'delete')) {
+        remote.mutation[name] = gql`
           mutation ${name}(${buildVars(query.args)}) {
             ${name}(${buildArgs(query.args)}) {
               ${buildFields(resource.fields, types, {
@@ -218,51 +215,48 @@ const initGraphqlProvider = schema => {
             }
           }
         `;
-      return;
-    }
+        return;
+      }
 
-    // Add query
-    if (isQuery(query)) {
-      const vars = query.args.length ? `(${buildVars(query.args)})` : '';
-      const args = query.args.length ? `(${buildArgs(query.args)})` : '';
-      remote.query[name] = gql`
+      // Add query
+      if (isQuery(query)) {
+        const vars = query.args.length ? `(${buildVars(query.args)})` : '';
+        const args = query.args.length ? `(${buildArgs(query.args)})` : '';
+        remote.query[name] = gql`
         query ${name}${vars} {
           ${name}${args} {
             ${buildFields(resource.fields, types)}
           }
         }
       `;
-      return;
-    }
+        return;
+      }
 
-    // Add mutation
-    if (isMutation(query)) {
-      const vars = query.args.length ? `(${buildVars(query.args)})` : '';
-      const args = query.args.length ? `(${buildArgs(query.args)})` : '';
-      remote.mutation[name] = gql`
+      // Add mutation
+      if (isMutation(query)) {
+        const vars = query.args.length ? `(${buildVars(query.args)})` : '';
+        const args = query.args.length ? `(${buildArgs(query.args)})` : '';
+        remote.mutation[name] = gql`
       mutation ${name}${vars} {
         ${name}${args} {
-          ${buildFields(resource.fields, types, {
-            excludeReferences: true,
-          })}
+          ${buildFields(resource.fields, types)}
         }
       }
     `;
-      return;
-    }
+        return;
+      }
 
-    // Handle all else
-    // TODO: Remove once we "know" all queries will be handled
+      // Handle all else
+      // TODO: Remove once we "know" all queries will be handled
 
-    console.log(query);
-    console.log(resource);
+      console.log(query);
+      console.log(resource);
 
-    throw new Error(`Unknown query ${query.name}! Check your configuration.}`);
+      throw new Error(
+        `Unknown query ${query.name}! Check your configuration.}`
+      );
+    });
+    resolve();
   });
 
-  // for (const q of Object.values(remote.query)) {
-  //   console.log(q.loc.source.body);
-  // }
-};
-
-export { initGraphqlProvider, filterVariables };
+export { initGraphqlProvider, filterVariables, getType, isSubObject };

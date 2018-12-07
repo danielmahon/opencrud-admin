@@ -1,11 +1,9 @@
 import React from 'react';
 import { TopAppBarNavigationIcon } from '@rmwc/top-app-bar';
 import { Icon } from '@rmwc/icon';
-import { Mutation } from 'react-apollo';
 import { Transition } from 'react-spring';
 import { Subscribe } from 'unstated';
 
-import { local } from '../../graphs';
 import { SidebarContainer } from '../../state';
 
 const AnimatedIcon = ({ open }) => {
@@ -36,15 +34,11 @@ const AnimatedIcon = ({ open }) => {
 const NavigationIcon = () => {
   return (
     <Subscribe to={[SidebarContainer]}>
-      {({ state: sidebar }) => (
-        <Mutation mutation={local.mutation.toggleSidebar} ignoreResults>
-          {toggleSidebar => (
-            <TopAppBarNavigationIcon
-              icon={<AnimatedIcon open={sidebar.open} />}
-              onClick={toggleSidebar}
-            />
-          )}
-        </Mutation>
+      {({ state: sidebar, toggleSidebar }) => (
+        <TopAppBarNavigationIcon
+          icon={<AnimatedIcon open={sidebar.open} />}
+          onClick={toggleSidebar}
+        />
       )}
     </Subscribe>
   );

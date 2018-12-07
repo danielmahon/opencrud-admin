@@ -13,7 +13,7 @@ const rmwc = {
   textSecondaryOnBackground: 'rgba(0,0,0,0.54)',
   textHintOnBackground: 'rgba(0,0,0,0.38)',
   textDisabledOnBackground: 'rgba(0,0,0,0.38)',
-  textIconOnBackground: 'rgba(0,0,0,0.38)',
+  textIconOnBackground: 'rgba(0,0,0,0.87)',
   textPrimaryOnLight: 'rgba(0,0,0,0.87)',
   textSecondaryOnLight: 'rgba(0,0,0,0.54)',
   textHintOnLight: 'rgba(0,0,0,0.38)',

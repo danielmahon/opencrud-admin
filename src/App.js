@@ -20,16 +20,18 @@ import { UnstatedProvider } from './providers/UnstatedProvider';
 import { initGraphqlProvider } from './providers/GraphqlProvider';
 import { containers } from './state';
 
-const App = () => {
-  return (
-    <ApolloProvider initGraphqlProvider={initGraphqlProvider}>
-      <UnstatedProvider containers={containers}>
+const App = () => (
+  <UnstatedProvider containers={containers}>
+    {getToken => (
+      <ApolloProvider
+        initGraphqlProvider={initGraphqlProvider}
+        getToken={getToken}>
         <ThemeProvider>
           <RouteProvider />
         </ThemeProvider>
-      </UnstatedProvider>
-    </ApolloProvider>
-  );
-};
+      </ApolloProvider>
+    )}
+  </UnstatedProvider>
+);
 
 export default App;

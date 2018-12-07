@@ -60,7 +60,9 @@ const UnstatedProvider = ({ children, containers }) => {
         {(...allContainers) => {
           // Persist Gate, don't load until rehydration is complete
           if (!allContainers.every(isBootstrapped)) return null;
-          return children;
+          // Pass token to render prop
+          const getToken = allContainers[0].getToken;
+          return children(getToken);
         }}
       </Subscribe>
     </Provider>

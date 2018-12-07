@@ -17,7 +17,7 @@ import { Transition, animated } from 'react-spring';
 
 import NavigationIcon from './NavigationIcon';
 import { NetworkStatusNotifier } from '../NetworkStatusNotifier';
-import { Subscribe, AuthContainer } from '../../state';
+import { Subscribe, AuthState } from '../../state';
 
 const LoadingIndicator = styled(LinearProgress)`
   position: absolute;
@@ -55,8 +55,8 @@ export default class AppBar extends PureComponent {
     return (
       <ThemeConsumer>
         {theme => (
-          <Subscribe to={[AuthContainer]}>
-            {({ state: { isAuth, isLoggingOut }, logout }) => (
+          <Subscribe to={[AuthState]}>
+            {({ state: { isAuth, isLoggingOut }, handleLogout }) => (
               <Transition
                 native
                 items={isAuth && !isLoggingOut}
@@ -96,7 +96,7 @@ export default class AppBar extends PureComponent {
                                 Settings
                               </MenuItem>
                               <ListDivider />
-                              <MenuItem onClick={logout}>
+                              <MenuItem onClick={handleLogout}>
                                 <ListItemGraphic icon="exit_to_app" />
                                 Logout
                               </MenuItem>

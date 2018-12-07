@@ -2,15 +2,16 @@ import { Container, Provider, Subscribe } from 'unstated';
 import { PersistContainer } from '../providers/UnstatedProvider';
 import { SidebarContainer } from './SidebarContainer';
 import { ResourcesContainer } from './ResourcesContainer';
-import { AuthContainer } from './AuthContainer';
+import { AuthState } from './AuthState';
 
 // Expose state containers
-export const containers = [SidebarContainer, ResourcesContainer, AuthContainer];
+// AuthState must be first!
+export const containers = [AuthState, SidebarContainer, ResourcesContainer];
 // Expose these for convenience
 export {
   SidebarContainer,
   ResourcesContainer,
-  AuthContainer,
+  AuthState,
   Container,
   Provider,
   Subscribe,

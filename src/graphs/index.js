@@ -1,25 +1,7 @@
 import gql from 'graphql-tag';
+import { introspectionQuery } from 'graphql';
 
-const fragments = {
-  resources: `
-    resources @client {
-      type
-      icon
-      list {
-        fields {
-          source
-          type
-        }
-      }
-      edit {
-        fields {
-          source
-          type
-        }
-      }
-    }
-  `,
-};
+const fragments = {};
 
 const local = {
   query: {
@@ -44,7 +26,12 @@ const local = {
 };
 
 const remote = {
-  query: {},
+  schema: null,
+  query: {
+    schema: gql`
+      ${introspectionQuery}
+    `,
+  },
   mutation: {},
 };
 

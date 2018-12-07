@@ -9,12 +9,9 @@ import { onError } from 'apollo-link-error';
 // import { withClientState } from 'apollo-link-state';
 import { ApolloLink, split } from 'apollo-link';
 import apolloLogger from 'apollo-link-logger';
-import { introspectionQuery } from 'graphql';
-import gql from 'graphql-tag';
 
-// import { resolvers, defaults } from '../state';
+import { remote } from '../graphs';
 import { networkStatusNotifierLink } from '../components/NetworkStatusNotifier';
-import { AUTH_TOKEN } from '../config';
 
 class EnhancedApolloProvider extends PureComponent {
   constructor(props) {
@@ -29,12 +26,11 @@ class EnhancedApolloProvider extends PureComponent {
     // const stateLink = withClientState({ cache, resolvers, defaults });
 
     const middlewareLink = new ApolloLink((operation, forward) => {
-      // get the authentication token from local storage if it exists
-      const tokenValue = localStorage.getItem(AUTH_TOKEN);
+      // get the authentication token from props if it exists
       // return the headers to the context so httpLink can read them
       operation.setContext({
         headers: {
-          Authorization: tokenValue ? `Bearer ${tokenValue}` : '',
+          Authorization: `Bearer ${props.getToken()}`,
         },
       });
       return forward(operation);
@@ -60,7 +56,7 @@ class EnhancedApolloProvider extends PureComponent {
       options: {
         reconnect: true,
         connectionParams: {
-          Authorization: `Bearer ${localStorage.getItem(AUTH_TOKEN)}`,
+          Authorization: `Bearer ${props.getToken()}`,
         },
       },
     });
@@ -105,13 +101,15 @@ class EnhancedApolloProvider extends PureComponent {
     const { initGraphqlProvider } = this.props;
     // Get schema
     const result = await this._client.query({
-      query: gql`
-        ${introspectionQuery}
-      `,
+      query: remote.query.schema,
       fetchPolicy: 'network-only',
     });
-    initGraphqlProvider(result.data.__schema);
+    // Store remote schema
+    remote.schema = result.data.__schema;
+    // Initialize GraphqlProvider, needs remote schema
+    await initGraphqlProvider();
     // Show app
+    console.log('[App] Ready!');
     this.setState({ ready: true });
   };
   render() {

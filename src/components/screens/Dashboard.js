@@ -19,7 +19,7 @@ class Dashboard extends PureComponent {
   render() {
     return (
       <Grid>
-        <Helmet title="Home" />
+        <Helmet title="Mission Control" />
         <GridCell span={12}>
           <img src={logo} className="App-logo" alt="logo" />
           <Text>

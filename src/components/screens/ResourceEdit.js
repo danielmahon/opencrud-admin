@@ -7,7 +7,7 @@ import { Select } from '@rmwc/select';
 import { TabBar, Tab } from '@rmwc/tabs';
 import { IconButton } from '@rmwc/icon-button';
 import { Query, Mutation } from 'react-apollo';
-import { camelCase, capitalize, has, startCase, get } from 'lodash';
+import { capitalize, has, startCase, get, unionBy, reject } from 'lodash';
 import { DateTime } from 'luxon';
 import { plural } from 'pluralize';
 import { TextField, TextFieldHelperText } from '@rmwc/textfield';
@@ -25,10 +25,16 @@ import { Elevation } from '@rmwc/elevation';
 import SparkMD5 from 'spark-md5';
 import ChunkedFileReader from 'chunked-file-reader';
 // import hasha from 'hasha';
+import * as yup from 'yup';
 
 import { remote } from '../../graphs';
 // import { DefaultLayout } from '../layouts';
-import { filterVariables } from '../../providers/GraphqlProvider';
+import {
+  filterVariables,
+  getType,
+  isSubObject,
+} from '../../providers/GraphqlProvider';
+import { Subscribe, ResourcesContainer } from '../../state';
 
 // import Text from '../ui/Text';
 // import Placeholder from '../ui/Placeholder';
@@ -43,6 +49,7 @@ const FabActions = styled('div')`
   position: fixed;
   right: 2rem;
   bottom: 2rem;
+  z-index: 1002;
   button:not(:last-child) {
     margin-right: 1rem;
   }
@@ -87,13 +94,26 @@ const FormikTextField = ({
   form, // also values, setXXXX, handleXXXX, dirty, isValid, status, etc.
   help,
   ...props
-}) => (
-  <Fragment>
-    <TextField type="text" value={value || ''} {...field} {...props} />
-    {help && <TextFieldHelperText persistent>{help}</TextFieldHelperText>}
-    <ErrorMessage name={field.name} component={TextFieldHelperText} />
-  </Fragment>
-);
+}) => {
+  return (
+    <Fragment>
+      <TextField
+        invalid={form.errors[field.name]}
+        type="text"
+        value={value || ''}
+        {...field}
+        {...props}
+      />
+      {help && <TextFieldHelperText persistent>{help}</TextFieldHelperText>}
+      <ErrorMessage
+        name={field.name}
+        component={TextFieldHelperText}
+        persistent
+        validationMsg
+      />
+    </Fragment>
+  );
+};
 
 class FormikImageField extends PureComponent {
   constructor(props) {
@@ -186,23 +206,23 @@ class FormikImageField extends PureComponent {
         )}
         {value && (
           <TextField
-            disabled
-            type="text"
-            value={value || ''}
             {...field}
             {...props}
+            type="text"
+            value={value || ''}
+            disabled
           />
         )}
         {this.uppy && !value && (
           <Dashboard
+            {...field}
+            {...props}
             uppy={this.uppy}
             plugins={['AwsS3', 'GoogleDrive']}
             width={1920}
             height={400}
             // note="Images and video only, 2–3 files, up to 1 MB"
             proudlyDisplayPoweredByUppy={false}
-            {...field}
-            {...props}
           />
         )}
         {help && <TextFieldHelperText persistent>{help}</TextFieldHelperText>}
@@ -228,30 +248,35 @@ const FormikCheckbox = ({
 const FormikReferenceField = ({
   field, // { name, value, onChange, onBlur }
   form: { touched, errors }, // also values, setXXXX, handleXXXX, dirty, isValid, status, etc.
-  path,
   help,
   referenceType,
   referenceLabel,
+  referencePath,
   ...props
 }) => (
-  <Query query={remote.query[referenceType]}>
+  <Query query={remote.query[`${referenceType}Connection`]}>
     {({ loading, data }) => {
       if (loading) return <CircularProgress />;
       const name = `${referenceType}Connection`;
-      const items = data[name].edges.map(e => {
-        return {
-          label: get(e.node, referenceLabel),
-          value: get(e.node, 'id'),
-        };
-      });
+      const items = data[name].edges
+        .map(e => e.node)
+        .map(item => {
+          const label =
+            item[referenceLabel] || item.name || item.title || item.id;
+          return {
+            label: label,
+            value: item.id,
+            key: item.id,
+          };
+        });
       return (
         <Fragment>
           <Select {...field} {...props} options={items} />
-          {path && (
+          {referencePath && (
             <IconButton
               type="button"
               icon="link"
-              onClick={() => navigate(path)}
+              onClick={() => navigate(referencePath)}
             />
           )}
           {help && <TextFieldHelperText persistent>{help}</TextFieldHelperText>}
@@ -262,12 +287,37 @@ const FormikReferenceField = ({
   </Query>
 );
 
-const filterValues = (item, resource) => {
+const FormikSelectField = ({
+  field, // { name, value, onChange, onBlur }
+  form: { touched, errors }, // also values, setXXXX, handleXXXX, dirty, isValid, status, etc.
+  path,
+  help,
+  ...props
+}) => {
+  const type = remote.schema.types.find(
+    type => type.name.toLowerCase() === field.name
+  );
+  const items = type.enumValues.map(e => {
+    return {
+      label: e.name,
+      value: e.name,
+    };
+  });
+  return (
+    <Fragment>
+      <Select {...field} {...props} options={items} />
+      {help && <TextFieldHelperText persistent>{help}</TextFieldHelperText>}
+      <ErrorMessage name={field.name} component={TextFieldHelperText} />
+    </Fragment>
+  );
+};
+
+const getInitialValues = (item, resource, allSchemaFields) => {
   return Object.values(resource.edit.fields).reduce((acc, field) => {
     // Is reference
-    const refField = field.source.split('.')[0];
-    if (field.source.indexOf('.') !== -1) {
-      acc[refField] = get(item, `${refField}.id`);
+    const schemaField = allSchemaFields.find(f => f.name === field.source);
+    if (isSubObject(schemaField)) {
+      acc[field.source] = get(item, `${field.source}.id`);
     } else {
       acc[field.source] = get(item, field.source);
     }
@@ -286,232 +336,372 @@ class ResourceEdit extends PureComponent {
     );
     const isNew = resourceId === 'new';
     return (
-      <Query
-        fetchPolicy="cache-and-network"
-        query={remote.query[resourceParam]}
-        variables={{ where: { id: resourceId } }}>
-        {({ loading, data, client }) => {
-          if (loading) return null;
-          if (!isNew && !data[resourceParam]) {
-            return <Redirect to={`/list/${plural(resourceParam)}`} noThrow />;
-          }
-          // Format fields
-          let item = isNew ? {} : data[resourceParam];
-          const resource = data.resources.find(
-            r => r.type === capitalize(resourceParam)
-          );
-          const initialValues = filterValues(item, resource);
-          const title =
-            initialValues.name || initialValues.title || capitalize(resourceId);
-          return (
-            <Grid>
-              <Helmet title={`Edit ${capitalize(resourceParam)}: ${title}`} />
-              <GridCell span={12}>
-                <TabBar
-                  activeTabIndex={activeTab}
-                  onActivate={evt =>
-                    this.setState({ activeTab: evt.detail.index })
-                  }>
-                  <Tab icon="edit">Edit</Tab>
-                  <Tab icon="pageview" disabled>
-                    Preview
-                  </Tab>
-                </TabBar>
-              </GridCell>
+      <Subscribe to={[ResourcesContainer]}>
+        {({ state: { resources } }) => (
+          <Query
+            fetchPolicy="cache-and-network"
+            query={remote.query[resourceParam]}
+            variables={{ where: { id: resourceId } }}>
+            {({ loading, data, client }) => {
+              if (loading) return null;
+              if (!isNew && !data[resourceParam]) {
+                return (
+                  <Redirect to={`/list/${plural(resourceParam)}`} noThrow />
+                );
+              }
+              // Format fields
+              let item = isNew ? {} : data[resourceParam];
+              const resource = resources.find(
+                r => r.type === capitalize(resourceParam)
+              );
+              // Create validation schema
+              const schemaFields = remote.schema.types.find(
+                type => type.name === capitalize(resource.type)
+              ).fields;
+              const schemaInputFields = remote.schema.types.find(
+                type =>
+                  type.name ===
+                  `${capitalize(resource.type)}${
+                    isNew ? 'CreateInput' : 'UpdateInput'
+                  }`
+              ).inputFields;
+              const allSchemaFields = unionBy(
+                reject(schemaInputFields, isSubObject),
+                schemaFields,
+                'name'
+              );
+              const initialValues = getInitialValues(
+                item,
+                resource,
+                allSchemaFields
+              );
+              const title =
+                initialValues.name ||
+                initialValues.title ||
+                capitalize(resourceId);
+              const ResourceEditSchema = schemaInputFields.reduce(
+                (acc, field) => {
+                  const typeName = getType(field).name;
+                  const typeKind = field.type.kind;
+                  const config = resource.edit.fields.find(
+                    f => f.source === field.name
+                  );
+                  if (!config) return acc;
+                  let schema = yup;
+                  if (
+                    ['String', 'ID'].includes(typeName) ||
+                    ['ENUM'].includes(typeKind)
+                  ) {
+                    schema = schema.string('String');
+                  } else if (['DateTime'].includes(typeName)) {
+                    schema = schema.date('Please enter a valid date');
+                  } else {
+                    return acc;
+                  }
+                  if (['Email'].includes(config.type)) {
+                    schema = schema.email('Please enter a valid email');
+                  }
+                  if (typeKind === 'NON_NULL') {
+                    schema = schema.required('Required');
+                  }
 
-              <Formik
-                initialValues={initialValues}
-                onSubmit={(values, { resetForm, setSubmitting }) => {
-                  const name = isNew
-                    ? `create${capitalize(resourceParam)}`
-                    : `update${capitalize(resourceParam)}`;
-                  // Call remote mutation
-                  client
-                    .mutate({
-                      mutation: remote.mutation[name],
-                      variables: {
-                        where: values.id ? { id: values.id } : undefined,
-                        data: filterVariables(name, values),
-                      },
-                      onError: error => {
-                        console.log(error);
-                      },
-                    })
-                    .then(({ data }) => {
-                      if (isNew) {
-                        return navigate(
-                          `/edit/${resourceParam}/${data[name].id}`
+                  acc[field.name] = schema;
+
+                  if (['Password'].includes(config.type)) {
+                    schema = schema.oneOf(
+                      [yup.ref(field.name)],
+                      'Passwords must match'
+                    );
+                    acc[`${field.name}Confirm`] = schema;
+                  }
+
+                  return acc;
+                },
+                {}
+              );
+              return (
+                <Grid>
+                  <Helmet
+                    title={`Edit ${capitalize(resourceParam)}: ${title}`}
+                  />
+                  <GridCell span={12}>
+                    <TabBar
+                      activeTabIndex={activeTab}
+                      onActivate={evt =>
+                        this.setState({ activeTab: evt.detail.index })
+                      }>
+                      <Tab icon="edit">Edit</Tab>
+                      <Tab icon="pageview" disabled>
+                        Preview
+                      </Tab>
+                    </TabBar>
+                  </GridCell>
+
+                  <Formik
+                    initialValues={initialValues}
+                    validationSchema={yup.object().shape(ResourceEditSchema)}
+                    onSubmit={async (
+                      values,
+                      { resetForm, setSubmitting, setFieldError }
+                    ) => {
+                      const name = isNew
+                        ? `create${capitalize(resourceParam)}`
+                        : `update${capitalize(resourceParam)}`;
+                      // Call remote mutation
+                      try {
+                        const { data } = await client.mutate({
+                          mutation: remote.mutation[name],
+                          variables: {
+                            where: values.id ? { id: values.id } : undefined,
+                            data: filterVariables(name, values),
+                          },
+                        });
+                        if (isNew) {
+                          return navigate(
+                            `/edit/${resourceParam}/${data[name].id}`
+                          );
+                        }
+                        // Reset form values with updated data
+                        resetForm(
+                          getInitialValues(
+                            data[name],
+                            resource,
+                            allSchemaFields
+                          )
                         );
+                      } catch ({ graphQLErrors }) {
+                        setSubmitting(false);
+                        if (graphQLErrors) {
+                          graphQLErrors.forEach(error => {
+                            setFieldError(error.data.field, error.message);
+                          });
+                        }
                       }
-                      // Reset form values with updated data
-                      resetForm(filterValues(data[name], resource));
-                    })
-                    .catch(error => {
-                      console.log(error);
-                      setSubmitting(false);
-                    });
-                }}>
-                {({ isSubmitting, dirty, resetForm, setSubmitting }) => {
-                  return (
-                    <GridCell span={12}>
-                      <Form>
-                        <GridInner>
-                          {resource.edit.fields.map((field, idx) => {
-                            let disabled = false;
-                            switch (field.type.split(':')[0]) {
-                              case 'DateTime':
+                    }}>
+                    {({ isSubmitting, dirty, resetForm, setSubmitting }) => {
+                      return (
+                        <GridCell span={12}>
+                          <Form>
+                            <GridInner>
+                              {resource.edit.fields.map((field, idx) => {
+                                const schemaField = allSchemaFields.find(
+                                  f => f.name === field.source
+                                );
+                                const name = schemaField.name;
+                                const typeName = getType(schemaField).name;
+                                const typeKind = schemaField.type.kind;
+                                const type = field.type
+                                  ? field.type.split(':')[0]
+                                  : typeKind === 'ENUM'
+                                  ? typeKind
+                                  : typeName;
+                                let disabled =
+                                  field.disabled ||
+                                  schemaField.__typename === '__Field';
+
+                                if (isNew && disabled) return null;
+
+                                if (type === 'ENUM') {
+                                  return (
+                                    <GridCell span={12} key={name}>
+                                      <Field
+                                        component={FormikSelectField}
+                                        name={name}
+                                        disabled={disabled}
+                                        label={startCase(name)}
+                                      />
+                                    </GridCell>
+                                  );
+                                }
+                                if (type === 'DateTime') {
+                                  return (
+                                    <GridCell span={12} key={name}>
+                                      <Field
+                                        component={FormikDateField}
+                                        name={name}
+                                        disabled={disabled}
+                                        label={startCase(name)}
+                                      />
+                                    </GridCell>
+                                  );
+                                }
+                                if (isSubObject(schemaField)) {
+                                  const referenceObject = get(item, name);
+                                  const referenceType = getType(
+                                    schemaField
+                                  ).name.toLowerCase();
+                                  const referencePath = isNew
+                                    ? null
+                                    : `/edit/${referenceType}/${
+                                        referenceObject.id
+                                      }`;
+                                  return (
+                                    <GridCell span={12} key={name}>
+                                      <Field
+                                        component={FormikReferenceField}
+                                        name={name}
+                                        label={startCase(name)}
+                                        referenceType={plural(referenceType)}
+                                        referenceLabel={field.reference}
+                                        referencePath={referencePath}
+                                      />
+                                    </GridCell>
+                                  );
+                                }
+                                if (type === 'Boolean') {
+                                  return (
+                                    <GridCell span={12} key={name}>
+                                      <Field
+                                        component={FormikCheckbox}
+                                        name={name}
+                                        disabled={disabled}
+                                        label={startCase(name)}
+                                      />
+                                    </GridCell>
+                                  );
+                                }
+                                if (type === 'Image') {
+                                  return (
+                                    <GridCell span={12} key={name}>
+                                      <Field
+                                        style={{ width: '100%' }}
+                                        component={FormikImageField}
+                                        name={name}
+                                        disabled={disabled}
+                                        label={startCase(name)}
+                                      />
+                                    </GridCell>
+                                  );
+                                }
+                                if (type === 'Password') {
+                                  return (
+                                    <Fragment key={name}>
+                                      <GridCell span={12}>
+                                        <Field
+                                          style={{ width: '100%' }}
+                                          type="password"
+                                          autoComplete="new-password"
+                                          component={FormikTextField}
+                                          name={name}
+                                          disabled={disabled}
+                                          label={
+                                            isNew
+                                              ? startCase(name)
+                                              : 'Enter New Password'
+                                          }
+                                        />
+                                      </GridCell>
+                                      <GridCell span={12}>
+                                        <Field
+                                          style={{ width: '100%' }}
+                                          type="password"
+                                          disabled={disabled}
+                                          autoComplete="new-password"
+                                          component={FormikTextField}
+                                          name={`${name}Confirm`}
+                                          label={
+                                            isNew
+                                              ? 'Confirm Password'
+                                              : 'Confirm New Password'
+                                          }
+                                        />
+                                      </GridCell>
+                                    </Fragment>
+                                  );
+                                }
                                 return (
-                                  <GridCell span={12} key={idx}>
-                                    <Field
-                                      component={FormikDateField}
-                                      name={field.source}
-                                      label={startCase(field.source)}
-                                    />
-                                  </GridCell>
-                                );
-                              case 'Reference':
-                                const referenceObject = get(
-                                  item,
-                                  field.source.split('.')[0]
-                                );
-                                const referenceType = camelCase(
-                                  field.type.split(':')[1]
-                                );
-                                const path = isNew
-                                  ? null
-                                  : `/edit/${referenceType}/${
-                                      referenceObject.id
-                                    }`;
-                                const name = field.source.split('.')[0];
-                                const referenceLabel = field.source.split(
-                                  '.'
-                                )[1];
-                                return (
-                                  <GridCell span={12} key={idx}>
-                                    <Field
-                                      path={path}
-                                      component={FormikReferenceField}
-                                      name={name}
-                                      label={startCase(name)}
-                                      referenceType={plural(referenceType)}
-                                      referenceLabel={referenceLabel}
-                                    />
-                                  </GridCell>
-                                );
-                              case 'Boolean':
-                                return (
-                                  <GridCell span={12} key={idx}>
-                                    <Field
-                                      component={FormikCheckbox}
-                                      name={field.source}
-                                      label={startCase(field.source)}
-                                    />
-                                  </GridCell>
-                                );
-                              case 'Image':
-                                return (
-                                  <GridCell span={12} key={idx}>
-                                    <Field
-                                      style={{ width: '100%' }}
-                                      component={FormikImageField}
-                                      name={field.source}
-                                      label={startCase(field.source)}
-                                    />
-                                  </GridCell>
-                                );
-                              case 'String':
-                                disabled = true;
-                              // falls through
-                              case 'Text':
-                              default:
-                                return (
-                                  <GridCell span={12} key={idx}>
+                                  <GridCell span={12} key={name}>
                                     <Field
                                       style={{ width: '100%' }}
                                       disabled={disabled}
                                       component={FormikTextField}
-                                      name={field.source}
-                                      label={startCase(field.source)}
+                                      name={name}
+                                      label={startCase(name)}
                                     />
                                   </GridCell>
                                 );
-                            }
-                          })}
-                          <Actions span={12}>
-                            <Button
-                              unelevated
-                              type="submit"
-                              disabled={isSubmitting || !dirty}>
-                              {isSubmitting ? (
-                                <span>
-                                  <ButtonIcon icon={<CircularProgress />} />{' '}
-                                  Saving...
-                                </span>
-                              ) : (
-                                <span>
-                                  <ButtonIcon icon="save" /> Save
-                                </span>
-                              )}
-                            </Button>
-                            <Button
-                              outlined
-                              type="reset"
-                              disabled={isSubmitting || !dirty}
-                              onClick={() => resetForm(initialValues)}>
-                              <ButtonIcon icon="undo" /> Undo
-                            </Button>
-                            {canBeDeleted && (
-                              <Mutation
-                                mutation={
-                                  remote.mutation[
-                                    `delete${capitalize(resourceParam)}`
-                                  ]
-                                }
-                                onCompleted={() => {
-                                  navigate(`/list/${plural(resourceParam)}`);
-                                }}
-                                variables={{ where: { id: resourceId } }}>
-                                {handleDelete => (
-                                  <DangerButton
-                                    type="button"
-                                    outlined
-                                    onClick={() => {
-                                      setSubmitting(true);
-                                      handleDelete();
+                              })}
+                              <Actions span={12}>
+                                <Button
+                                  unelevated
+                                  type="submit"
+                                  disabled={isSubmitting || !dirty}>
+                                  {isSubmitting ? (
+                                    <span>
+                                      <ButtonIcon icon={<CircularProgress />} />{' '}
+                                      Saving...
+                                    </span>
+                                  ) : (
+                                    <span>
+                                      <ButtonIcon icon="save" /> Save
+                                    </span>
+                                  )}
+                                </Button>
+                                <Button
+                                  outlined
+                                  type="reset"
+                                  disabled={isSubmitting || !dirty}
+                                  onClick={() => resetForm(initialValues)}>
+                                  <ButtonIcon icon="undo" /> Undo
+                                </Button>
+                                {canBeDeleted && (
+                                  <Mutation
+                                    mutation={
+                                      remote.mutation[
+                                        `delete${capitalize(resourceParam)}`
+                                      ]
+                                    }
+                                    onError={error => window.alert(error)}
+                                    onCompleted={() => {
+                                      navigate(
+                                        `/list/${plural(resourceParam)}`
+                                      );
                                     }}
-                                    disabled={isSubmitting}>
-                                    <ButtonIcon icon="delete" /> Delete
-                                  </DangerButton>
+                                    variables={{ where: { id: resourceId } }}>
+                                    {handleDelete => (
+                                      <DangerButton
+                                        type="button"
+                                        outlined
+                                        onClick={() => {
+                                          setSubmitting(true);
+                                          handleDelete();
+                                        }}
+                                        disabled={isNew || isSubmitting}>
+                                        <ButtonIcon icon="delete" /> Delete
+                                      </DangerButton>
+                                    )}
+                                  </Mutation>
                                 )}
-                              </Mutation>
-                            )}
-                          </Actions>
-                          <FabActions>
-                            <Fab
-                              icon="save"
-                              label="Save"
-                              exited={isSubmitting || !dirty}
-                              type="submit"
-                            />
-                            <Fab
-                              icon="add"
-                              type="button"
-                              onClick={() => {
-                                navigate(`/edit/${resourceParam}/new`);
-                                resetForm();
-                              }}
-                            />
-                          </FabActions>
-                        </GridInner>
-                      </Form>
-                    </GridCell>
-                  );
-                }}
-              </Formik>
-            </Grid>
-          );
-        }}
-      </Query>
+                              </Actions>
+                              <FabActions>
+                                <Fab
+                                  icon="save"
+                                  label="Save"
+                                  exited={isSubmitting || !dirty}
+                                  type="submit"
+                                />
+                                <Fab
+                                  icon="add"
+                                  type="button"
+                                  onClick={() => {
+                                    navigate(`/edit/${resourceParam}/new`);
+                                    resetForm();
+                                  }}
+                                />
+                              </FabActions>
+                            </GridInner>
+                          </Form>
+                        </GridCell>
+                      );
+                    }}
+                  </Formik>
+                  <GridCell style={{ height: 64 }} />
+                </Grid>
+              );
+            }}
+          </Query>
+        )}
+      </Subscribe>
     );
   }
 }

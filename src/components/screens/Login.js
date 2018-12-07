@@ -5,7 +5,7 @@ import { Helmet } from 'react-helmet';
 import styled from 'styled-components';
 import { Card, CardMedia, CardMediaContent } from '@rmwc/card';
 import { TextField, TextFieldHelperText } from '@rmwc/textfield';
-import { Formik, Form, Field, ErrorMessage } from 'formik';
+import { Formik, Form, Field } from 'formik';
 import { Transition, animated } from 'react-spring';
 import { CircularProgress } from '@rmwc/circular-progress';
 import { Mutation } from 'react-apollo';
@@ -13,7 +13,7 @@ import * as Yup from 'yup';
 import { navigate } from '@reach/router';
 
 import logo from '../../images/logo.svg';
-import { Subscribe, AuthContainer } from '../../state';
+import { Subscribe, AuthState } from '../../state';
 import { remote } from '../../graphs';
 
 const TallGrid = styled(Grid)`
@@ -48,15 +48,13 @@ const LoginSchema = Yup.object().shape({
   password: Yup.string().required('Required'),
 });
 
-console.log(remote);
-
 class Login extends PureComponent {
   render() {
     return (
       <Mutation mutation={remote.mutation.login}>
         {remoteLogin => (
-          <Subscribe to={[AuthContainer]}>
-            {({ login }) => {
+          <Subscribe to={[AuthState]}>
+            {({ handleLogin }) => {
               return (
                 <TallGrid>
                   <Helmet title="Login" />
@@ -103,12 +101,20 @@ class Login extends PureComponent {
                                     const { data } = await remoteLogin({
                                       variables: values,
                                     });
-                                    await login(data.login.token);
+                                    await handleLogin({
+                                      token: data.login.token,
+                                      user: data.login.user,
+                                    });
                                     setSubmitting(false);
                                     navigate('/');
-                                  } catch (error) {
+                                  } catch ({ graphQLErrors }) {
                                     setSubmitting(false);
-                                    setFieldError('password', error.toString());
+                                    graphQLErrors.forEach(error => {
+                                      setFieldError(
+                                        error.data.field,
+                                        error.message
+                                      );
+                                    });
                                   }
                                 }}>
                                 {({

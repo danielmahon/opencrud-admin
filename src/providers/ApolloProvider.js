@@ -12,6 +12,7 @@ import apolloLogger from 'apollo-link-logger';
 
 import { remote } from '../graphs';
 import { networkStatusNotifierLink } from '../components/NetworkStatusNotifier';
+import AppLoader from '../components/screens/AppLoader';
 
 class EnhancedApolloProvider extends PureComponent {
   constructor(props) {
@@ -115,7 +116,7 @@ class EnhancedApolloProvider extends PureComponent {
   render() {
     const { children } = this.props;
     const { ready } = this.state;
-    if (!ready) return null;
+    if (!ready) return <AppLoader />;
     return <ApolloProvider client={this._client}>{children}</ApolloProvider>;
   }
 }

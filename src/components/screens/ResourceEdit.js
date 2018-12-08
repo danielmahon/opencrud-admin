@@ -14,7 +14,7 @@ import { TextField, TextFieldHelperText } from '@rmwc/textfield';
 import { CircularProgress } from '@rmwc/circular-progress';
 import styled from 'styled-components';
 import { Fab } from '@rmwc/fab';
-import Imgix from 'react-imgix';
+import { buildURL } from 'react-imgix';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import Uppy from '@uppy/core';
 import AwsS3 from '@uppy/aws-s3';
@@ -199,9 +199,17 @@ class FormikImageField extends PureComponent {
               borderRadius: '.25rem',
               overflow: 'hidden',
               marginBottom: '1rem',
-              height: 480,
             }}>
-            <Imgix src={value} height={480} alt="preview" />
+            <img
+              src={buildURL(value, {
+                height: 480,
+                fit: 'max',
+              })}
+              alt="preview"
+              style={{
+                maxWidth: '100%',
+              }}
+            />
           </Elevation>
         )}
         {value && (
@@ -256,7 +264,18 @@ const FormikReferenceField = ({
 }) => (
   <Query query={remote.query[`${referenceType}Connection`]}>
     {({ loading, data }) => {
-      if (loading) return <CircularProgress />;
+      if (loading) {
+        return (
+          <Fragment>
+            <Select
+              label={field.name}
+              options={['Loading...']}
+              value={'Loading...'}
+            />
+            <IconButton disabled type="button" icon={<CircularProgress />} />
+          </Fragment>
+        );
+      }
       const name = `${referenceType}Connection`;
       const items = data[name].edges
         .map(e => e.node)

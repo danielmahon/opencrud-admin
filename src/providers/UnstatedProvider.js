@@ -2,6 +2,7 @@ import React from 'react';
 import { Container, Provider, Subscribe } from 'unstated';
 import tickedoff from 'tickedoff';
 import localForage from 'localforage';
+import AppLoader from '../components/screens/AppLoader';
 
 class PersistContainer extends Container {
   constructor() {
@@ -59,7 +60,7 @@ const UnstatedProvider = ({ children, containers }) => {
       <Subscribe to={containers}>
         {(...allContainers) => {
           // Persist Gate, don't load until rehydration is complete
-          if (!allContainers.every(isBootstrapped)) return null;
+          if (!allContainers.every(isBootstrapped)) return <AppLoader />;
           // Pass token to render prop
           const getToken = allContainers[0].getToken;
           return children(getToken);

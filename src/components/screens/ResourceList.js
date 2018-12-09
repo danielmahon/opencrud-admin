@@ -15,6 +15,7 @@ import { Card, CardAction, CardActions, CardActionIcons } from '@rmwc/card';
 import { Checkbox } from '@rmwc/checkbox';
 import { Typography } from '@rmwc/typography';
 import { Button, ButtonIcon } from '@rmwc/button';
+import { Icon } from '@rmwc/icon';
 import { IconButton } from '@rmwc/icon-button';
 import { Query, Mutation } from 'react-apollo';
 import Imgix from 'react-imgix';
@@ -178,7 +179,12 @@ class ResourceList extends PureComponent {
       );
     }
     if (type === 'Boolean') {
-      return <Checkbox checked={value} disabled />;
+      return (
+        <Icon
+          icon={value ? 'check' : 'close'}
+          style={{ color: !value && 'var(--mdc-theme-text-icon-on-light)' }}
+        />
+      );
     }
     if (type === 'DateTime') {
       const date = DateTime.fromISO(value);
@@ -354,10 +360,12 @@ class ResourceList extends PureComponent {
                           </DataTableHead>
                           <DataTableBody>
                             {items.map((item, idx) => {
+                              const isSelected = selected.includes(item.id);
                               return (
                                 <DataTableRow
                                   key={item.id}
                                   activated={this.state.active === idx}
+                                  selected={isSelected}
                                   onDoubleClick={() => {
                                     navigate(
                                       `/edit/${singular(resourceParam)}/${
@@ -373,7 +381,7 @@ class ResourceList extends PureComponent {
                                       onChange={() =>
                                         this.handleSelectItem(item.id)
                                       }
-                                      checked={selected.includes(item.id)}
+                                      checked={isSelected}
                                     />
                                   </DataTableCell>
                                   {resource.list.fields.map(

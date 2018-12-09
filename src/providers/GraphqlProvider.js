@@ -1,8 +1,10 @@
 import { TypeKind } from 'graphql';
 import gql from 'graphql-tag';
 import { chain, startsWith, endsWith } from 'lodash';
+import { plural } from 'pluralize';
 
 import { remote } from '../graphs';
+import { resources } from '../config';
 
 const isNotGraphqlPrivateType = type => !type.name.startsWith('__');
 
@@ -142,10 +144,7 @@ const initGraphqlProvider = () =>
     const types = remote.schema.types.filter(
       type => type.name !== 'Query' && type.name !== 'Mutation'
     );
-    // const potentialResources = types.filter(type => {
-    //   return queries.some(query => query.name === camelCase(type.name));
-    // });
-    const knownResources = types.map(r => r.name);
+    const knownTypes = types.map(r => r.name);
 
     // Generate remote queries
     queries.forEach(query => {
@@ -155,13 +154,13 @@ const initGraphqlProvider = () =>
 
       if (!resource) {
         throw new Error(
-          `Unknown resource ${type}. Make sure it has been declared on your server side schema. Known resources are ${knownResources.join(
+          `Unknown type ${type}. Make sure it has been declared on your server side schema. Known resources are ${knownTypes.join(
             ', '
           )}`
         );
       }
 
-      // CREATE ONE query
+      // CREATE ONE mutation
       if (resource && startsWith(name, 'create')) {
         remote.mutation[name] = gql`
           mutation ${name}(${buildVars(query.args)}) {
@@ -192,7 +191,8 @@ const initGraphqlProvider = () =>
         return;
       }
 
-      // UPDATE ONE query
+      // UPDATE ONE mutation
+      // update[Resource]
       if (resource && startsWith(name, 'update')) {
         remote.mutation[name] = gql`
           mutation ${name}(${buildVars(query.args)}) {
@@ -204,21 +204,8 @@ const initGraphqlProvider = () =>
         return;
       }
 
-      // // DELETE MANY query
-      // if (resource && startsWith(name, 'deleteMany')) {
-      //   remote.mutation[name] = gql`
-      //     mutation ${name}(${buildVars(query.args)}) {
-      //       ${name}(${buildArgs(query.args)}) {
-      //         ${buildFields(resource.fields, types, {
-      //           excludeReferences: true,
-      //         })}
-      //       }
-      //     }
-      //   `;
-      //   return;
-      // }
-
-      // DELETE ONE query
+      // DELETE ONE/MANY mutations
+      // delete[Resource], deleteMany[Resources]
       if (resource && startsWith(name, 'delete')) {
         remote.mutation[name] = gql`
           mutation ${name}(${buildVars(query.args)}) {
@@ -270,6 +257,33 @@ const initGraphqlProvider = () =>
         `Unknown query ${query.name}! Check your configuration.}`
       );
     });
+
+    // Check for required queries/mutations
+    const requiredQueries = ['', 'sConnection'];
+    const requiredMutations = ['create', 'update', 'delete', 'deleteMany'];
+    resources.forEach(resource => {
+      requiredQueries.forEach(method => {
+        let resourceType = resource.type.toLowerCase();
+        if (!remote.query[`${resourceType}${method}`]) {
+          throw new Error(
+            `Missing ${resourceType}${method} query in remote schema!`
+          );
+        }
+      });
+      requiredMutations.forEach(method => {
+        let resourceType = resource.type;
+        if (method.includes('Many')) {
+          resourceType = plural(resourceType);
+        }
+        if (!remote.mutation[`${method}${resourceType}`]) {
+          throw new Error(
+            `Missing ${method}${resourceType} mutation in remote schema!`
+          );
+        }
+      });
+    });
+
+    // All good!
     resolve();
   });
 

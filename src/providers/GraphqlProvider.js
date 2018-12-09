@@ -204,6 +204,20 @@ const initGraphqlProvider = () =>
         return;
       }
 
+      // // DELETE MANY query
+      // if (resource && startsWith(name, 'deleteMany')) {
+      //   remote.mutation[name] = gql`
+      //     mutation ${name}(${buildVars(query.args)}) {
+      //       ${name}(${buildArgs(query.args)}) {
+      //         ${buildFields(resource.fields, types, {
+      //           excludeReferences: true,
+      //         })}
+      //       }
+      //     }
+      //   `;
+      //   return;
+      // }
+
       // DELETE ONE query
       if (resource && startsWith(name, 'delete')) {
         remote.mutation[name] = gql`

@@ -1,4 +1,4 @@
-import React, { PureComponent } from 'react';
+import React, { PureComponent, Fragment } from 'react';
 import { Link, navigate } from '@reach/router';
 import { Grid, GridCell } from '@rmwc/grid';
 import { Fab } from '@rmwc/fab';
@@ -20,6 +20,7 @@ import { Query, Mutation } from 'react-apollo';
 import Imgix from 'react-imgix';
 import { Helmet } from 'react-helmet';
 import { Chip, ChipSet } from '@rmwc/chip';
+import { Transition, animated } from 'react-spring';
 
 import {
   truncate,
@@ -29,6 +30,8 @@ import {
   omit,
   has,
   get,
+  union,
+  without,
 } from 'lodash';
 // import { CircularProgress } from '@rmwc/circular-progress';
 import { DateTime } from 'luxon';
@@ -63,10 +66,20 @@ const StyledDataTable = styled(DataTable)`
 const SmallChip = styled(Chip)`
   font-size: 0.75rem;
 `;
-const CardHeader = styled(Typography).attrs({
+const CardHeaderTitle = styled(Typography).attrs({
   use: 'headline6',
+  tag: 'div',
 })`
-  margin: 1rem 1.5rem;
+  flex: 1;
+  line-height: 3rem;
+`;
+const CardHeaderButtons = styled('div')`
+  flex: none;
+`;
+const CardHeader = styled('div')`
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
 `;
 const Pagination = styled(CardActions)`
   justify-content: flex-end;
@@ -105,6 +118,14 @@ const PaginationIcons = styled(CardActionIcons)`
 const FabActionsSpacer = styled(GridCell)`
   height: 64px;
 `;
+const AnimatedIconButton = styled(IconButton)`
+  &&&::before {
+    top: 25%;
+    left: 25%;
+    width: 50%;
+    height: 50%;
+  }
+`;
 
 class ResourceList extends PureComponent {
   state = {
@@ -114,6 +135,7 @@ class ResourceList extends PureComponent {
     dialog: { open: false, body: null },
     first: 10,
     page: 1,
+    selected: [],
   };
   componentDidMount() {
     this.handleScrollTop();
@@ -123,6 +145,18 @@ class ResourceList extends PureComponent {
       this.handleScrollTop();
     }
   }
+  handleSelectItem = id => {
+    if (this.state.selected.includes(id)) {
+      this.setState({ selected: without(this.state.selected, id) });
+    } else {
+      this.setState({ selected: union(this.state.selected, [id]) });
+    }
+  };
+  handleSelectAll = items => {
+    this.setState({
+      selected: this.state.selected.length ? [] : items.map(i => i.id),
+    });
+  };
   handleScrollTop = () => {
     window.requestAnimationFrame(() => {
       window.scrollTo(0, 0);
@@ -180,7 +214,7 @@ class ResourceList extends PureComponent {
     }
   };
   render() {
-    const { sortKey, sortDir, first, page } = this.state;
+    const { sortKey, sortDir, first, page, selected } = this.state;
     const { resource: resourceParam } = this.props;
     // Format orderBy
     const orderBy =
@@ -225,17 +259,76 @@ class ResourceList extends PureComponent {
 
                   return (
                     <Card>
-                      <CardHeader>{capitalize(resourceParam)}</CardHeader>
+                      <CardHeader>
+                        <CardHeaderTitle>
+                          {capitalize(resourceParam)}
+                        </CardHeaderTitle>
+                        <CardHeaderButtons>
+                          <Mutation
+                            mutation={
+                              remote.mutation[
+                                `deleteMany${capitalize(resourceParam)}`
+                              ]
+                            }
+                            onError={error => {
+                              this.setState({ selected: [] });
+                              window.alert(error);
+                            }}
+                            onCompleted={() => {
+                              this.setState({ selected: [] });
+                              refetch();
+                            }}
+                            variables={{
+                              where: { id_in: selected },
+                            }}>
+                            {handleDelete => (
+                              <Transition
+                                native
+                                config={{ tension: 170 * 2 }}
+                                items={selected.length > 0}
+                                from={{
+                                  opacity: 0,
+                                  transform: 'scale(0.5)',
+                                }}
+                                enter={{ opacity: 1, transform: 'scale(1)' }}
+                                leave={{
+                                  opacity: 0,
+                                  transform: 'scale(0.5)',
+                                }}>
+                                {show =>
+                                  show &&
+                                  (props => (
+                                    <animated.div style={props}>
+                                      <AnimatedIconButton
+                                        type="button"
+                                        icon="delete"
+                                        onClick={handleDelete}
+                                      />
+                                    </animated.div>
+                                  ))
+                                }
+                              </Transition>
+                            )}
+                          </Mutation>
+                        </CardHeaderButtons>
+                      </CardHeader>
                       <StyledDataTable>
                         <DataTableContent>
                           <DataTableHead>
                             <DataTableRow>
+                              <DataTableHeadCell>
+                                <Checkbox
+                                  onChange={() => this.handleSelectAll(items)}
+                                  checked={selected.length === end - start}
+                                />
+                              </DataTableHeadCell>
                               {resource.list.fields.map((field, i) => {
                                 const sortable =
                                   field.source.indexOf('.') === -1;
                                 return (
                                   <DataTableHeadCell
-                                    alignMiddle
+                                    alignStart={i === 0}
+                                    alignEnd={i > 0}
                                     key={field.source}
                                     sort={
                                       sortable && sortKey === field.source
@@ -257,7 +350,6 @@ class ResourceList extends PureComponent {
                                 );
                               })}
                               <DataTableHeadCell />
-                              {canBeDeleted && <DataTableHeadCell />}
                             </DataTableRow>
                           </DataTableHead>
                           <DataTableBody>
@@ -276,6 +368,14 @@ class ResourceList extends PureComponent {
                                   onClick={() => {
                                     this.setState({ active: idx });
                                   }}>
+                                  <DataTableCell>
+                                    <Checkbox
+                                      onChange={() =>
+                                        this.handleSelectItem(item.id)
+                                      }
+                                      checked={selected.includes(item.id)}
+                                    />
+                                  </DataTableCell>
                                   {resource.list.fields.map(
                                     (field, fieldIdx) => {
                                       const schemaField = schemaFields.find(
@@ -295,7 +395,9 @@ class ResourceList extends PureComponent {
 
                                       return (
                                         <DataTableCell
-                                          key={name}
+                                          key={field.source}
+                                          alignStart={fieldIdx === 0}
+                                          alignEnd={fieldIdx > 0}
                                           style={{
                                             padding: isImage ? 0 : null,
                                           }}>
@@ -310,7 +412,9 @@ class ResourceList extends PureComponent {
                                       );
                                     }
                                   )}
-                                  <DataTableCell>
+                                  <DataTableCell
+                                    alignEnd
+                                    style={{ width: '1%' }}>
                                     <IconButton
                                       icon="edit"
                                       onClick={() => {
@@ -322,31 +426,6 @@ class ResourceList extends PureComponent {
                                       }}
                                     />
                                   </DataTableCell>
-                                  {canBeDeleted && (
-                                    <DataTableCell>
-                                      <Mutation
-                                        mutation={
-                                          remote.mutation[
-                                            `delete${capitalize(
-                                              singular(resourceParam)
-                                            )}`
-                                          ]
-                                        }
-                                        onError={error => window.alert(error)}
-                                        onCompleted={refetch}
-                                        variables={{ where: { id: item.id } }}>
-                                        {handleDelete => (
-                                          <IconButton
-                                            type="button"
-                                            icon="delete"
-                                            onClick={() => {
-                                              handleDelete();
-                                            }}
-                                          />
-                                        )}
-                                      </Mutation>
-                                    </DataTableCell>
-                                  )}
                                 </DataTableRow>
                               );
                             })}
@@ -391,15 +470,6 @@ class ResourceList extends PureComponent {
               </Query>
             )}
           </Subscribe>
-          <SimpleDialog
-            title="Confirm Delete"
-            body={this.state.dialog.body}
-            open={this.state.dialog.open}
-            onClose={evt => {
-              console.log(evt.detail.action);
-              this.setState({ dialog: { open: false } });
-            }}
-          />
         </GridCell>
         <FabActions>
           <Fab

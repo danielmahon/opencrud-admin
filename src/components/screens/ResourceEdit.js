@@ -35,6 +35,7 @@ import {
   isSubObject,
 } from '../../providers/GraphqlProvider';
 import { Subscribe, ResourcesContainer } from '../../state';
+import { Editor } from '../ui/Editor';
 
 // import Text from '../ui/Text';
 // import Placeholder from '../ui/Placeholder';
@@ -497,10 +498,31 @@ class ResourceEdit extends PureComponent {
                         }
                       }
                     }}>
-                    {({ isSubmitting, dirty, resetForm, setSubmitting }) => {
+                    {({
+                      isSubmitting,
+                      dirty,
+                      resetForm,
+                      submitForm,
+                      setSubmitting,
+                    }) => {
                       return (
                         <GridCell span={12}>
-                          <Form>
+                          <Form
+                            onKeyDown={evt => {
+                              // Handle form submission via keypress
+                              const { key, metaKey, ctrlKey } = evt;
+                              if (key === 'Enter') {
+                                evt.preventDefault();
+                              } else if (
+                                (key === 's' && metaKey) ||
+                                (key === 's' && ctrlKey)
+                              ) {
+                                evt.preventDefault();
+                                if (!isSubmitting && dirty) {
+                                  submitForm();
+                                }
+                              }
+                            }}>
                             <GridInner>
                               {resource.edit.fields.map((field, idx) => {
                                 const schemaField = allSchemaFields.find(
@@ -520,6 +542,17 @@ class ResourceEdit extends PureComponent {
 
                                 if (isNew && disabled) return null;
 
+                                if (type === 'Editor') {
+                                  return (
+                                    <GridCell span={12} key={name}>
+                                      <Field
+                                        name={name}
+                                        label={startCase(name)}
+                                        component={Editor}
+                                      />
+                                    </GridCell>
+                                  );
+                                }
                                 if (type === 'ENUM') {
                                   return (
                                     <GridCell span={12} key={name}>
@@ -643,8 +676,9 @@ class ResourceEdit extends PureComponent {
                               <Actions span={12}>
                                 <Button
                                   unelevated
-                                  type="submit"
-                                  disabled={isSubmitting || !dirty}>
+                                  type="button"
+                                  disabled={isSubmitting || !dirty}
+                                  onClick={submitForm}>
                                   {isSubmitting ? (
                                     <span>
                                       <ButtonIcon icon={<CircularProgress />} />{' '}

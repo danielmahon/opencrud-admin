@@ -1,21 +1,19 @@
-import React, { Component, Fragment } from 'react';
+import React, { Component } from 'react';
 import { GridCell } from '@rmwc/grid';
-import { Icon } from '@rmwc/icon';
 import { Typography } from '@rmwc/typography';
 import { Button } from '@rmwc/button';
 import { debounce, capitalize } from 'lodash';
-import styled, { css } from 'styled-components';
-// import {
-//   DraftJS,
-//   MegadraftEditor,
-//   editorStateFromRaw,
-//   editorStateToJSON,
-// } from 'megadraft';
+import styled from 'styled-components';
 import { EditorState, convertFromRaw, convertToRaw } from 'draft-js';
-import DraftJSEditor from 'draft-js-plugins-editor';
+import DraftJSEditor, { composeDecorators } from 'draft-js-plugins-editor';
 import createUndoPlugin from 'draft-js-undo-plugin';
+import createFocusPlugin from 'draft-js-focus-plugin';
+import createAlignmentPlugin from 'draft-js-alignment-plugin';
+import createImagePlugin from 'draft-js-image-plugin';
+import createBlockBreakoutPlugin from 'draft-js-block-breakout-plugin';
+import createRichButtonsPlugin from 'draft-js-richbuttons-plugin';
+import createResizeablePlugin from 'draft-js-resizeable-plugin';
 
-import { editor } from '../../../config';
 import {
   InlineToolbar,
   inlineToolbarPlugin,
@@ -23,6 +21,7 @@ import {
   sideToolbarPlugin,
   linkPlugin,
   Counter,
+  createDividerPlugin,
 } from './index';
 
 const undoPlugin = createUndoPlugin({
@@ -30,6 +29,20 @@ const undoPlugin = createUndoPlugin({
   redoContent: <Button tag="div">redo</Button>,
 });
 const { UndoButton, RedoButton } = undoPlugin;
+const richButtonsPlugin = createRichButtonsPlugin();
+const blockBreakoutPlugin = createBlockBreakoutPlugin();
+const focusPlugin = createFocusPlugin();
+const dividerPlugin = createDividerPlugin({ focusPlugin });
+const { DividerButton } = dividerPlugin;
+const resizeablePlugin = createResizeablePlugin();
+const alignmentPlugin = createAlignmentPlugin();
+const decorator = composeDecorators(
+  alignmentPlugin.decorator,
+  focusPlugin.decorator,
+  resizeablePlugin.decorator
+);
+const imagePlugin = createImagePlugin({ decorator });
+const { AlignmentTool } = alignmentPlugin;
 
 const HistoryButtons = styled('div')`
   position: absolute;
@@ -67,14 +80,33 @@ const EditorWrapper = styled('div')`
   .sidebar__menu {
     left: -3.125rem;
   }
-  .paragraph {
-    padding-bottom: 1rem;
+  figure {
+    margin: 0;
   }
-  .align-right {
-    text-align: right;
+  img {
+    max-width: 100%;
+    border-radius: 0.25rem;
+    &[style*='float: left'] {
+      margin: 0 1rem 1rem 0;
+    }
+    &[style*='float: right'] {
+      margin: 0 0 1rem 1rem;
+    }
   }
-  .align-center {
-    text-align: center;
+  blockquote {
+    border-left: 4px solid #d7d7d7;
+    margin-left: 0;
+    padding-left: 1rem;
+    font-style: italic;
+    clear: both;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin: 0 0 1rem 0;
   }
 `;
 
@@ -134,6 +166,13 @@ export class Editor extends Component {
               sideToolbarPlugin,
               undoPlugin,
               linkPlugin,
+              imagePlugin,
+              focusPlugin,
+              alignmentPlugin,
+              resizeablePlugin,
+              blockBreakoutPlugin,
+              richButtonsPlugin,
+              dividerPlugin,
             ]}
             onChange={editorState => {
               this.handleEditorStateChange(editorState);
@@ -142,10 +181,20 @@ export class Editor extends Component {
             blockStyleFn={contentBlock => {
               const type = contentBlock.getType();
               switch (type) {
+                case 'header-one':
+                  return 'mdc-typography--headline1';
                 case 'header-two':
                   return 'mdc-typography--headline2';
                 case 'header-three':
                   return 'mdc-typography--headline3';
+                case 'header-four':
+                  return 'mdc-typography--headline4';
+                case 'header-five':
+                  return 'mdc-typography--headline5';
+                case 'header-six':
+                  return 'mdc-typography--headline6';
+                case 'blockquote':
+                  return 'mdc-typography--headline5';
                 case 'paragraph':
                 case 'unstyled':
                   return 'mdc-typography--body1';
@@ -154,8 +203,9 @@ export class Editor extends Component {
               }
             }}
           />
-          <InlineToolbar />
-          <SideToolbar />
+          <InlineToolbar richButtonsPlugin={richButtonsPlugin} />
+          <SideToolbar plugins={{ imagePlugin }} buttons={[DividerButton]} />
+          <AlignmentTool />
           <HistoryButtons>
             <UndoButton />
             <RedoButton />

@@ -1,4 +1,4 @@
-import React, { PureComponent, Fragment } from 'react';
+import React, { PureComponent } from 'react';
 import { Link, navigate } from '@reach/router';
 import { Grid, GridCell } from '@rmwc/grid';
 import { Fab } from '@rmwc/fab';
@@ -29,24 +29,19 @@ import {
   capitalize,
   camelCase,
   omit,
-  has,
   get,
   union,
   without,
 } from 'lodash';
-// import { CircularProgress } from '@rmwc/circular-progress';
 import { DateTime } from 'luxon';
 import { singular } from 'pluralize';
-import { SimpleDialog } from '@rmwc/dialog';
 import styled from 'styled-components';
 
 import { Subscribe, ResourcesContainer } from '../../state';
 import { remote } from '../../graphs';
 import { getType, isSubObject } from '../../providers/GraphqlProvider';
-// import { DefaultLayout } from '../layouts';
 import Text from '../ui/Text';
 import { Select } from 'rmwc';
-// import Placeholder from '../ui/Placeholder';
 
 const FabActions = styled('div')`
   position: fixed;
@@ -225,10 +220,6 @@ class ResourceList extends PureComponent {
     // Format orderBy
     const orderBy =
       sortDir < 0 ? `${sortKey}_ASC` : sortDir > 0 ? `${sortKey}_DESC` : null;
-    const canBeDeleted = has(
-      remote.mutation,
-      `delete${capitalize(singular(resourceParam))}`
-    );
     const queryName = `${camelCase(resourceParam)}Connection`;
     return (
       <Grid>
@@ -389,7 +380,6 @@ class ResourceList extends PureComponent {
                                       const schemaField = schemaFields.find(
                                         f => f.name === field.source
                                       );
-                                      const name = schemaField.name;
                                       const typeName = getType(schemaField)
                                         .name;
                                       const typeKind = schemaField.type.kind;

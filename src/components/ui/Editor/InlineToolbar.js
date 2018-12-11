@@ -2,21 +2,9 @@ import React, { Component, Fragment } from 'react';
 import createInlineToolbarPlugin, {
   Separator,
 } from 'draft-js-inline-toolbar-plugin';
-import {
-  ItalicButton,
-  BoldButton,
-  UnderlineButton,
-  CodeButton,
-  // HeadlineOneButton,
-  HeadlineTwoButton,
-  HeadlineThreeButton,
-  UnorderedListButton,
-  OrderedListButton,
-  BlockquoteButton,
-  CodeBlockButton,
-} from 'draft-js-buttons';
 import styled from 'styled-components';
-import { Icon } from '@rmwc/icon';
+import { Typography } from '@rmwc/typography';
+import { IconButton } from '@rmwc/icon-button';
 import createLinkPlugin from 'draft-js-anchor-plugin';
 
 const inlineToolbarPlugin = createInlineToolbarPlugin();
@@ -28,23 +16,23 @@ const InlineToolbarWrapper = styled('div')`
     z-index: 10;
   }
 `;
-const HeadlineButtonWrapper = styled('div')`
-  display: inline-block;
-`;
-const HeadlineButton = styled('button')`
-  background: #fbfbfb;
-  color: #888;
-  font-size: 18px;
-  border: 0;
-  padding-top: 5px;
-  vertical-align: bottom;
-  height: 34px;
-  width: 36px;
-  &:hover,
-  :focus {
-    background: #f3f3f3;
-  }
-`;
+
+const Button = ({
+  icon,
+  toggleBlockType,
+  toggleInlineStyle,
+  isActive,
+  style,
+}) => {
+  return (
+    <IconButton
+      style={{ ...style, opacity: isActive ? 1 : 0.54 }}
+      onClick={toggleBlockType || toggleInlineStyle}
+      onMouseDown={event => event.preventDefault()}
+      icon={icon}
+    />
+  );
+};
 
 class HeadlinesPicker extends Component {
   componentDidMount() {
@@ -52,23 +40,23 @@ class HeadlinesPicker extends Component {
       window.addEventListener('click', this.onWindowClick);
     });
   }
-
   componentWillUnmount() {
     window.removeEventListener('click', this.onWindowClick);
   }
-
   onWindowClick = () => {
-    // Call `onOverrideContent` again with `undefined`
-    // so the toolbar can show its regular content again.
     this.props.onOverrideContent(undefined);
   };
-
   render() {
-    const buttons = [HeadlineTwoButton, HeadlineThreeButton];
+    const { buttons } = this.props;
     return (
       <div>
-        {buttons.map((Button, i) => (
-          <Button key={i} {...this.props} />
+        {buttons.map((HButton, i) => (
+          <HButton key={i}>
+            <Button
+              style={{ padding: 0 }}
+              icon={<Typography use="button">{`H${i + 1}`}</Typography>}
+            />
+          </HButton>
         ))}
       </div>
     );
@@ -76,48 +64,93 @@ class HeadlinesPicker extends Component {
 }
 
 class HeadlinesButton extends Component {
-  // When using a click event inside overridden content, mouse down
-  // events needs to be prevented so the focus stays in the editor
-  // and the toolbar remains visible  onMouseDown = (event) => event.preventDefault()
-  onMouseDown = event => event.preventDefault();
-
   onClick = () => {
     // A button can call `onOverrideContent` to replace the content
     // of the toolbar. This can be useful for displaying sub
     // menus or requesting additional information from the user.
-    this.props.onOverrideContent(HeadlinesPicker);
+    this.props.onOverrideContent(() => <HeadlinesPicker {...this.props} />);
   };
-
   render() {
     return (
-      <HeadlineButtonWrapper onMouseDown={this.onMouseDown}>
-        <HeadlineButton onClick={this.onClick}>
-          <Icon icon="title" />
-        </HeadlineButton>
-      </HeadlineButtonWrapper>
+      <IconButton
+        type="button"
+        onClick={this.onClick}
+        icon="title"
+        onMouseDown={evt => evt.preventDefault()}
+      />
     );
   }
 }
 
 class InlineToolbar extends Component {
   render() {
+    const { richButtonsPlugin } = this.props;
+    const {
+      // inline buttons
+      ItalicButton,
+      BoldButton,
+      MonospaceButton,
+      UnderlineButton,
+      // block buttons
+      ParagraphButton,
+      BlockquoteButton,
+      CodeButton,
+      OLButton,
+      ULButton,
+      H1Button,
+      H2Button,
+      H3Button,
+      H4Button,
+      H5Button,
+      H6Button,
+    } = richButtonsPlugin;
     return (
       <InlineToolbarWrapper>
         <DefaultInlineToolbar>
           {// may be use React.Fragment instead of div to improve perfomance after React 16
           externalProps => (
             <Fragment>
-              <BoldButton {...externalProps} />
-              <ItalicButton {...externalProps} />
-              <UnderlineButton {...externalProps} />
-              <CodeButton {...externalProps} />
+              <BoldButton>
+                <Button icon="format_bold" />
+              </BoldButton>
+              <ItalicButton>
+                <Button icon="format_italic" />
+              </ItalicButton>
+              <UnderlineButton>
+                <Button icon="format_underline" />
+              </UnderlineButton>
+              <MonospaceButton>
+                <Button icon="code" />
+              </MonospaceButton>
               <linkPlugin.LinkButton {...externalProps} />
               <Separator {...externalProps} />
-              <HeadlinesButton {...externalProps} />
-              <UnorderedListButton {...externalProps} />
-              <OrderedListButton {...externalProps} />
-              <BlockquoteButton {...externalProps} />
-              <CodeBlockButton {...externalProps} />
+              <ParagraphButton>
+                <Button icon="format_clear" />
+              </ParagraphButton>
+              <HeadlinesButton
+                {...externalProps}
+                richButtonsPlugin={richButtonsPlugin}
+                buttons={[
+                  H1Button,
+                  H2Button,
+                  H3Button,
+                  H4Button,
+                  H5Button,
+                  H6Button,
+                ]}
+              />
+              <ULButton>
+                <Button icon="format_list_bulleted" />
+              </ULButton>
+              <OLButton>
+                <Button icon="format_list_numbered" />
+              </OLButton>
+              <BlockquoteButton>
+                <Button icon="format_quote" />
+              </BlockquoteButton>
+              <CodeButton>
+                <Button icon="code" />
+              </CodeButton>
             </Fragment>
           )}
         </DefaultInlineToolbar>

@@ -10,10 +10,12 @@ import '@rmwc/circular-progress/circular-progress.css';
 import '@rmwc/data-table/data-table.css';
 import '@uppy/core/dist/style.css';
 import '@uppy/dashboard/dist/style.css';
-// import 'megadraft/dist/css/megadraft.css';
 import 'draft-js-inline-toolbar-plugin/lib/plugin.css';
 import 'draft-js-side-toolbar-plugin/lib/plugin.css';
 import 'draft-js-anchor-plugin/lib/plugin.css';
+import 'draft-js-image-plugin/lib/plugin.css';
+import 'draft-js-focus-plugin/lib/plugin.css';
+import 'draft-js-alignment-plugin/lib/plugin.css';
 import './index.css';
 
 // Relative Imports

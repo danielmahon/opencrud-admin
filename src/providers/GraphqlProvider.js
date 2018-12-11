@@ -1,6 +1,6 @@
 import { TypeKind } from 'graphql';
 import gql from 'graphql-tag';
-import { chain, startsWith, endsWith, isPlainObject } from 'lodash';
+import { chain, startsWith, endsWith } from 'lodash';
 import { plural } from 'pluralize';
 
 import { remote } from '../graphs';

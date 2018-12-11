@@ -4,5 +4,6 @@ export {
   linkPlugin,
 } from './InlineToolbar';
 export { SideToolbar, sideToolbarPlugin } from './SideToolbar';
-export { Editor } from './Editor';
 export { Counter } from './Counter';
+export { createDividerPlugin } from './DividerPlugin';
+export { Editor } from './Editor';

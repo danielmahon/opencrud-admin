@@ -1,17 +1,7 @@
 import React, { Component, Fragment } from 'react';
-
-import {
-  HeadlineOneButton,
-  HeadlineTwoButton,
-  BlockquoteButton,
-  CodeBlockButton,
-} from 'draft-js-buttons';
 import createSideToolbarPlugin from 'draft-js-side-toolbar-plugin';
 import styled from 'styled-components';
-
-// import buttonStyles from './buttonStyles.css';
-// import toolbarStyles from './toolbarStyles.css';
-// import blockTypeSelectStyles from './blockTypeSelectStyles.css';
+import { IconButton } from '@rmwc/icon-button';
 
 // Setting the side Toolbar at right position(default is left) and styling with custom theme
 const sideToolbarPlugin = createSideToolbarPlugin();
@@ -29,9 +19,22 @@ const StyledDefaultSideToolbar = styled(DefaultSideToolbar)`
   background: red;
 `;
 
+class AddImageButton extends Component {
+  openPrompt = () => {
+    const { getEditorState, setEditorState, imagePlugin } = this.props;
+    const url = window.prompt('Paste the image url ...');
+    if (url) {
+      setEditorState(imagePlugin.addImage(getEditorState(), url));
+    }
+  };
+  render() {
+    return <IconButton onClick={this.openPrompt} icon="add_a_photo" />;
+  }
+}
+
 class SideToolbar extends Component {
   render() {
-    const { addImage } = this.props;
+    const { imagePlugin, buttons } = this.props;
     return (
       <SideToolbarWrapper>
         <StyledDefaultSideToolbar>
@@ -39,10 +42,10 @@ class SideToolbar extends Component {
           externalProps => {
             return (
               <Fragment>
-                <HeadlineOneButton {...externalProps} />
-                <HeadlineTwoButton {...externalProps} />
-                <BlockquoteButton {...externalProps} />
-                <CodeBlockButton {...externalProps} />
+                <AddImageButton {...externalProps} imagePlugin={imagePlugin} />
+                {buttons.map((ButtonComponent, i) => {
+                  return <ButtonComponent {...externalProps} key={i} />;
+                })}
               </Fragment>
             );
           }}

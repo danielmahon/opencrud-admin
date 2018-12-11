@@ -39,7 +39,7 @@ export const resources = [
       fields: [
         { source: 'id' },
         { source: 'title' },
-        { source: 'content', type: 'Editor', limit: 200 },
+        { source: 'content', type: 'Editor' },
         { source: 'isPublished' },
         { source: 'author' },
         { source: 'createdAt' },

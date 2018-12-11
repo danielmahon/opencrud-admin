@@ -549,6 +549,7 @@ class ResourceEdit extends PureComponent {
                                         name={name}
                                         label={startCase(name)}
                                         component={Editor}
+                                        config={field}
                                       />
                                     </GridCell>
                                   );

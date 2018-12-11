@@ -7,7 +7,7 @@ import {
   BoldButton,
   UnderlineButton,
   CodeButton,
-  HeadlineOneButton,
+  // HeadlineOneButton,
   HeadlineTwoButton,
   HeadlineThreeButton,
   UnorderedListButton,
@@ -17,9 +17,11 @@ import {
 } from 'draft-js-buttons';
 import styled from 'styled-components';
 import { Icon } from '@rmwc/icon';
+import createLinkPlugin from 'draft-js-anchor-plugin';
 
 const inlineToolbarPlugin = createInlineToolbarPlugin();
 const { InlineToolbar: DefaultInlineToolbar } = inlineToolbarPlugin;
+const linkPlugin = createLinkPlugin();
 
 const InlineToolbarWrapper = styled('div')`
   > div {
@@ -55,13 +57,14 @@ class HeadlinesPicker extends Component {
     window.removeEventListener('click', this.onWindowClick);
   }
 
-  onWindowClick = () =>
+  onWindowClick = () => {
     // Call `onOverrideContent` again with `undefined`
     // so the toolbar can show its regular content again.
     this.props.onOverrideContent(undefined);
+  };
 
   render() {
-    const buttons = [HeadlineOneButton, HeadlineTwoButton, HeadlineThreeButton];
+    const buttons = [HeadlineTwoButton, HeadlineThreeButton];
     return (
       <div>
         {buttons.map((Button, i) => (
@@ -78,11 +81,12 @@ class HeadlinesButton extends Component {
   // and the toolbar remains visible  onMouseDown = (event) => event.preventDefault()
   onMouseDown = event => event.preventDefault();
 
-  onClick = () =>
+  onClick = () => {
     // A button can call `onOverrideContent` to replace the content
     // of the toolbar. This can be useful for displaying sub
     // menus or requesting additional information from the user.
     this.props.onOverrideContent(HeadlinesPicker);
+  };
 
   render() {
     return (
@@ -107,6 +111,7 @@ class InlineToolbar extends Component {
               <ItalicButton {...externalProps} />
               <UnderlineButton {...externalProps} />
               <CodeButton {...externalProps} />
+              <linkPlugin.LinkButton {...externalProps} />
               <Separator {...externalProps} />
               <HeadlinesButton {...externalProps} />
               <UnorderedListButton {...externalProps} />
@@ -121,4 +126,4 @@ class InlineToolbar extends Component {
   }
 }
 
-export { inlineToolbarPlugin, InlineToolbar };
+export { inlineToolbarPlugin, InlineToolbar, linkPlugin };

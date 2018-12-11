@@ -4,7 +4,7 @@ import { Icon } from '@rmwc/icon';
 import { Typography } from '@rmwc/typography';
 import { Button } from '@rmwc/button';
 import { debounce, capitalize } from 'lodash';
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 // import {
 //   DraftJS,
 //   MegadraftEditor,
@@ -21,6 +21,8 @@ import {
   inlineToolbarPlugin,
   SideToolbar,
   sideToolbarPlugin,
+  linkPlugin,
+  Counter,
 } from './index';
 
 const undoPlugin = createUndoPlugin({
@@ -38,6 +40,11 @@ const HistoryButtons = styled('div')`
     border: none;
     padding: 0;
   }
+`;
+const AdditionalInfo = styled('div')`
+  position: absolute;
+  right: 0.5rem;
+  bottom: 0.5rem;
 `;
 
 const EditorTitle = styled(Typography)`
@@ -74,13 +81,14 @@ const EditorWrapper = styled('div')`
 export class Editor extends Component {
   constructor(props) {
     super(props);
-    const { field } = props;
+    const { field, config = {} } = props;
     const initialEditorState = field.value
       ? EditorState.createWithContent(convertFromRaw(JSON.parse(field.value)))
       : EditorState.createEmpty();
     this.state = {
       editorState: initialEditorState,
       initialEditorState,
+      limit: config.limit || 0,
     };
   }
   updateForm = debounce(
@@ -97,7 +105,7 @@ export class Editor extends Component {
   handleEditorStateChange = editorState => {
     this.setState({ editorState });
   };
-  componentDidUpdate = prevProps => {
+  componentDidUpdate = (prevProps, prevState) => {
     if (prevProps.form.dirty && !this.props.form.dirty) {
       this.setState({
         editorState: this.state.initialEditorState,
@@ -110,7 +118,7 @@ export class Editor extends Component {
     }
   };
   render() {
-    const { editorState } = this.state;
+    const { editorState, limit } = this.state;
     const { field } = this.props;
     return (
       <GridCell span={12}>
@@ -121,27 +129,24 @@ export class Editor extends Component {
           <DraftJSEditor
             placeholder="Type here..."
             editorState={editorState}
-            plugins={[inlineToolbarPlugin, sideToolbarPlugin, undoPlugin]}
+            plugins={[
+              inlineToolbarPlugin,
+              sideToolbarPlugin,
+              undoPlugin,
+              linkPlugin,
+            ]}
             onChange={editorState => {
               this.handleEditorStateChange(editorState);
               this.updateForm(editorState);
             }}
             blockStyleFn={contentBlock => {
               const type = contentBlock.getType();
-              console.log(type);
               switch (type) {
-                case 'header-one':
-                  return 'mdc-typography--headline1';
                 case 'header-two':
                   return 'mdc-typography--headline2';
                 case 'header-three':
                   return 'mdc-typography--headline3';
-                case 'header-four':
-                  return 'mdc-typography--headline4';
-                case 'header-fiv':
-                  return 'mdc-typography--headline5';
-                case 'header-six':
-                  return 'mdc-typography--headline6';
+                case 'paragraph':
                 case 'unstyled':
                   return 'mdc-typography--body1';
                 default:
@@ -155,6 +160,13 @@ export class Editor extends Component {
             <UndoButton />
             <RedoButton />
           </HistoryButtons>
+          <AdditionalInfo>
+            <Counter
+              limit={limit}
+              editorState={editorState}
+              label="characters"
+            />
+          </AdditionalInfo>
         </EditorWrapper>
       </GridCell>
     );

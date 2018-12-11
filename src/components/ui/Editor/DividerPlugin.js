@@ -28,7 +28,6 @@ const createDividerPlugin = ({ entityType = 'divider', focusPlugin } = {}) => {
   let PluginComponent = ({ className, onClick }) => {
     return <ListDivider className={className} onClick={onClick} />;
   };
-  console.log(focusPlugin);
   if (focusPlugin) {
     const decorator = composeDecorators(focusPlugin.decorator);
     PluginComponent = decorator(PluginComponent);

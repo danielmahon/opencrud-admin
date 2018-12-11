@@ -64,11 +64,13 @@ const EditorTitle = styled(Typography)`
   padding-left: 0.75rem;
 `;
 const EditorWrapper = styled('div')`
-  position: relative;
   border: 1px solid #d7d7d7;
   border-radius: 0.25rem;
   padding: 2rem 2rem 4rem 2rem;
   /* Align placeholder ontop of first text line */
+  .DraftEditor-root {
+    position: relative;
+  }
   .public-DraftEditorPlaceholder-root {
     color: var(--mdc-theme-text-hint-on-background);
     position: absolute;
@@ -106,7 +108,7 @@ const EditorWrapper = styled('div')`
   h4,
   h5,
   h6 {
-    margin: 0 0 1rem 0;
+    margin: 2rem 0 1rem 0;
   }
 `;
 

@@ -8,11 +8,23 @@ const sideToolbarPlugin = createSideToolbarPlugin();
 const { SideToolbar: DefaultSideToolbar } = sideToolbarPlugin;
 
 const SideToolbarWrapper = styled('div')`
-  position: absolute;
-  top: -2rem;
-  left: 1.875rem;
-  > div {
+  [class*='wrapper'] {
     z-index: 8;
+    left: 0.375rem !important;
+    /* transform: scale(1) !important; */
+    /* visibility: visible !important; */
+    /* [class*='blockType'] {
+      border: 1px solid white;
+      background: var(--mdc-theme-text-primary-on-background);
+      svg {
+        fill: var(--mdc-theme-text-primary-on-dark);
+      }
+    } */
+    [class*='popup'] {
+      width: auto;
+      /* transform: scale(1) !important; */
+      /* visibility: visible !important; */
+    }
   }
 `;
 const StyledDefaultSideToolbar = styled(DefaultSideToolbar)`
@@ -34,7 +46,8 @@ class AddImageButton extends Component {
 
 class SideToolbar extends Component {
   render() {
-    const { imagePlugin, buttons } = this.props;
+    const { plugins, buttons } = this.props;
+    const { imagePlugin } = plugins;
     return (
       <SideToolbarWrapper>
         <StyledDefaultSideToolbar>

@@ -10,7 +10,7 @@ const { SideToolbar: DefaultSideToolbar } = sideToolbarPlugin;
 const SideToolbarWrapper = styled('div')`
   [class*='wrapper'] {
     z-index: 8;
-    left: 0.375rem !important;
+    left: -1.125rem !important;
     /* transform: scale(1) !important; */
     /* visibility: visible !important; */
     /* [class*='blockType'] {

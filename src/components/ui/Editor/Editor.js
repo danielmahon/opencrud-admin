@@ -64,6 +64,7 @@ const EditorTitle = styled(Typography)`
   padding-left: 0.75rem;
 `;
 const EditorWrapper = styled('div')`
+  position: relative;
   border: 1px solid #d7d7d7;
   border-radius: 0.25rem;
   padding: 2rem 2rem 4rem 2rem;

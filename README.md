@@ -24,7 +24,7 @@ The goal is to provide a CMS to connect to YOUR server, which in turn communicat
 yarn add prisma-cms
 ```
 
-## Usage (example)
+## Usage
 
 Create a new app with `create-react-app`
 
@@ -74,7 +74,7 @@ That's it! 🎉
 
 ### Optional
 
-Setup local SSL development using https://github.com/cameronhunter/local-ssl-proxy
+Setup local SSL development using [local-ssl-proxy](https://github.com/cameronhunter/local-ssl-proxy)
 
 ---
 

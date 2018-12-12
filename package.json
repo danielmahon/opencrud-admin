@@ -61,9 +61,10 @@
     "start": "run-p start:proxy dev",
     "dev": "react-scripts start",
     "start:proxy": "local-ssl-proxy -s 5000 -t 5001 -c ~/localhost.crt -k ~/localhost.key",
-    "build": "rimraf dist && dotenv -- babel src --out-dir dist --copy-files",
+    "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "prepack": "rimraf dist && dotenv -- babel src --out-dir dist --copy-files"
   },
   "eslintConfig": {
     "extends": "react-app"

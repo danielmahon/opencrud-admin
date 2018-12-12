@@ -68,7 +68,7 @@ Run your app in development mode.
 yarn start
 ```
 
-## That's it! 🎉
+That's it! 🎉
 
 (Until the configuration is opened up)
 

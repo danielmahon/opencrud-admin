@@ -1,0 +1,12 @@
+body {
+  color: var(--mdc-theme-text-primary-on-background, rgba(0, 0, 0, 0.87));
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+.mdc-list-item__graphic {
+  margin-right: 1rem;
+}

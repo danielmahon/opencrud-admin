@@ -4,10 +4,10 @@ import React from 'react';
 import 'normalize.css';
 import 'typeface-roboto';
 import 'material-icons';
-import 'react-placeholder/lib/reactPlaceholder.css';
 import 'material-components-web/dist/material-components-web.min.css';
 import '@rmwc/circular-progress/circular-progress.css';
 import '@rmwc/data-table/data-table.css';
+import 'react-placeholder/lib/reactPlaceholder.css';
 import '@uppy/core/dist/style.css';
 import '@uppy/dashboard/dist/style.css';
 import 'draft-js-inline-toolbar-plugin/lib/plugin.css';
@@ -16,7 +16,7 @@ import 'draft-js-anchor-plugin/lib/plugin.css';
 import 'draft-js-image-plugin/lib/plugin.css';
 import 'draft-js-focus-plugin/lib/plugin.css';
 import 'draft-js-alignment-plugin/lib/plugin.css';
-import './index.css';
+import './global.css';
 
 // Relative Imports
 import ApolloProvider from './providers/ApolloProvider';

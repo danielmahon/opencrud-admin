@@ -2,9 +2,8 @@ import React from 'react';
 import { TopAppBarNavigationIcon } from '@rmwc/top-app-bar';
 import { Icon } from '@rmwc/icon';
 import { Transition } from 'react-spring';
-import { Subscribe } from 'unstated';
 
-import { UIState } from '../../state';
+import { Subscribe, UIState } from '../../state';
 
 const AnimatedIcon = ({ open }) => {
   return (

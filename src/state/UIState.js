@@ -11,7 +11,7 @@ class UIState extends PersistContainer {
     if (options && options.open !== undefined) {
       return this.setState({ sidebar: { open: options.open } });
     }
-    return this.setState({ sidebar: { open: !this.state.open } });
+    return this.setState({ sidebar: { open: !this.state.sidebar.open } });
   };
   handleCloseSidebar = () => {
     return this.setState({ sidebar: { open: false } });

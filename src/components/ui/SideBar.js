@@ -45,7 +45,7 @@ class SideBar extends PureComponent {
       <Subscribe to={[AuthState, UIState, SettingsState]}>
         {(
           { state: { isAuth, isLoggingOut, user }, logout },
-          { state: { sidebar, toggleSidebar, handleCloseSidebar } },
+          { state: { sidebar }, toggleSidebar, handleCloseSidebar },
           { state: { resources } }
         ) => {
           return (

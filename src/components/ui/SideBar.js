@@ -75,7 +75,7 @@ class SideBar extends PureComponent {
                           if (isPhone) handleCloseSidebar();
                         }}
                         activated={'/' === location.pathname}>
-                        <ListItemGraphic icon="home" /> Home
+                        <ListItemGraphic icon="dashboard" /> Dashboard
                       </ListItem>
                     </List>
                   </DrawerContent>

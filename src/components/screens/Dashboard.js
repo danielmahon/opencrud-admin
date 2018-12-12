@@ -1,19 +1,31 @@
 import React, { PureComponent } from 'react';
-// import { Link } from '@reach/router';
-import { Grid, GridCell } from '@rmwc/grid';
+import { Grid, GridInner, GridCell } from '@rmwc/grid';
 import { Helmet } from 'react-helmet';
 
-import Text from '../ui/Text';
+import { SettingsState, Subscribe } from '../../state';
+import { DashboardCard } from '../ui/dashboard/DashboardCard';
 
 class Dashboard extends PureComponent {
   render() {
     return (
-      <Grid>
-        <Helmet title="Mission Control" />
-        <GridCell span={12}>
-          <Text>Dashboard [WIP]</Text>
-        </GridCell>
-      </Grid>
+      <Subscribe to={[SettingsState]}>
+        {({ state: { resources } }) => (
+          <Grid>
+            <Helmet title="Mission Control" />
+            <GridCell span={12}>
+              <GridInner>
+                {resources.map(resource => {
+                  return (
+                    <GridCell span={4} key={resource.type}>
+                      <DashboardCard resource={resource} />
+                    </GridCell>
+                  );
+                })}
+              </GridInner>
+            </GridCell>
+          </Grid>
+        )}
+      </Subscribe>
     );
   }
 }

@@ -1,6 +1,7 @@
 export const resources = [
   {
     type: 'User',
+    description: 'Registered site users.',
     icon: 'people',
     list: {
       fields: [
@@ -25,6 +26,7 @@ export const resources = [
   },
   {
     type: 'Post',
+    description: 'Example blog post items, with WYSIWYG editor.',
     icon: 'library_books',
     list: {
       fields: [
@@ -49,6 +51,7 @@ export const resources = [
   },
   {
     type: 'Image',
+    description: 'Image repository served by imgix',
     icon: 'collections',
     list: {
       fields: [

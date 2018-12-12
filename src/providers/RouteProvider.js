@@ -4,6 +4,7 @@ import { Transition, animated } from 'react-spring';
 
 import { MainLayout, AuthLayout } from '../components/layouts';
 import Dashboard from '../components/screens/Dashboard';
+import Settings from '../components/screens/Settings';
 import ResourceList from '../components/screens/ResourceList';
 import ResourceEdit from '../components/screens/ResourceEdit';
 import NotFound from '../components/screens/NotFound';
@@ -80,6 +81,7 @@ const RouteProvider = () => {
       <MainLayout>
         <FadeRouter>
           <Dashboard path="/" />
+          <Settings path="/settings" />
           <ResourceList path="/list/:resource" />
           <ResourceEdit path="/edit/:resource/:id" />
           <Logout path="/logout" />

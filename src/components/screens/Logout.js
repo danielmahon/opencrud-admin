@@ -1,10 +1,10 @@
 import React, { PureComponent } from 'react';
 
-import { AuthConsumer } from '../../providers/AuthProvider';
+import { Subscribe, AuthState } from '../../state';
 
 class Logout extends PureComponent {
   componentDidMount = () => {
-    this.props.logout();
+    this.props.handleLogout();
   };
   render() {
     return null;
@@ -13,7 +13,9 @@ class Logout extends PureComponent {
 class LogoutWrapper extends PureComponent {
   render() {
     return (
-      <AuthConsumer>{({ logout }) => <Logout logout={logout} />}</AuthConsumer>
+      <Subscribe to={[AuthState]}>
+        {({ handleLogout }) => <Logout handleLogout={handleLogout} />}
+      </Subscribe>
     );
   }
 }

@@ -4,7 +4,7 @@ import { Icon } from '@rmwc/icon';
 import { Transition } from 'react-spring';
 import { Subscribe } from 'unstated';
 
-import { SidebarContainer } from '../../state';
+import { UIState } from '../../state';
 
 const AnimatedIcon = ({ open }) => {
   return (
@@ -33,8 +33,8 @@ const AnimatedIcon = ({ open }) => {
 
 const NavigationIcon = () => {
   return (
-    <Subscribe to={[SidebarContainer]}>
-      {({ state: sidebar, toggleSidebar }) => (
+    <Subscribe to={[UIState]}>
+      {({ state: { sidebar }, toggleSidebar }) => (
         <TopAppBarNavigationIcon
           icon={<AnimatedIcon open={sidebar.open} />}
           onClick={toggleSidebar}

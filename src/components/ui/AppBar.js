@@ -3,12 +3,9 @@ import {
   TopAppBar,
   TopAppBarRow,
   TopAppBarSection,
-  TopAppBarActionItem,
   TopAppBarTitle,
   TopAppBarFixedAdjust,
 } from '@rmwc/top-app-bar';
-import { SimpleMenu, MenuItem } from '@rmwc/menu';
-import { ListDivider, ListItemGraphic } from '@rmwc/list';
 import { LinearProgress } from '@rmwc/linear-progress';
 import { Typography } from '@rmwc/typography';
 import styled, { ThemeConsumer } from 'styled-components';
@@ -16,6 +13,7 @@ import { darken, lighten } from 'polished';
 import { Transition, animated } from 'react-spring';
 
 import NavigationIcon from './NavigationIcon';
+import AppBarMenu from './AppBarMenu';
 import { NetworkStatusNotifier } from '../NetworkStatusNotifier';
 import { Subscribe, AuthState } from '../../state';
 
@@ -36,9 +34,6 @@ const StyledTopAppBar = styled(animated(TopAppBar))`
     flex-basis: ${({ theme }) => (theme.device.isPhone ? null : '33%')};
   }
 `;
-const AppBarMenu = styled(SimpleMenu)`
-  min-width: 192px;
-`;
 const Title = styled(Typography).attrs({
   use: 'headline6',
 })`
@@ -56,10 +51,10 @@ export default class AppBar extends PureComponent {
       <ThemeConsumer>
         {theme => (
           <Subscribe to={[AuthState]}>
-            {({ state: { isAuth, isLoggingOut }, handleLogout }) => (
+            {({ state: { user, isLoggingOut } }) => (
               <Transition
                 native
-                items={isAuth && !isLoggingOut}
+                items={user && !isLoggingOut}
                 from={{ top: -200, position: 'fixed' }}
                 enter={{ top: 0 }}
                 leave={{ top: -200, position: 'fixed' }}>
@@ -79,28 +74,7 @@ export default class AppBar extends PureComponent {
                             </TopAppBarSection>
                           )}
                           <TopAppBarSection alignEnd>
-                            <AppBarMenu
-                              handle={
-                                <TopAppBarActionItem
-                                  aria-label="My Profile"
-                                  alt="My Profile"
-                                  icon="person"
-                                />
-                              }>
-                              <MenuItem disabled>
-                                <ListItemGraphic icon="person" />
-                                My Profile
-                              </MenuItem>
-                              <MenuItem disabled>
-                                <ListItemGraphic icon="settings" />
-                                Settings
-                              </MenuItem>
-                              <ListDivider />
-                              <MenuItem onClick={handleLogout}>
-                                <ListItemGraphic icon="exit_to_app" />
-                                Logout
-                              </MenuItem>
-                            </AppBarMenu>
+                            <AppBarMenu user={user} />
                           </TopAppBarSection>
                           <NetworkStatusNotifier
                             render={({ loading }) => (

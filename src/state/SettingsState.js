@@ -1,8 +1,8 @@
 import { resources } from '../config';
 import { PersistContainer } from '../providers/UnstatedProvider';
 
-class ResourcesContainer extends PersistContainer {
+class SettingsState extends PersistContainer {
   state = { resources };
 }
 
-export { ResourcesContainer };
+export { SettingsState };

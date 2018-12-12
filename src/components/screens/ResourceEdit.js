@@ -34,7 +34,7 @@ import {
   getType,
   isSubObject,
 } from '../../providers/GraphqlProvider';
-import { Subscribe, ResourcesContainer } from '../../state';
+import { Subscribe, SettingsState } from '../../state';
 import { Editor } from '../ui/Editor';
 
 // import Text from '../ui/Text';
@@ -356,7 +356,7 @@ class ResourceEdit extends PureComponent {
     );
     const isNew = resourceId === 'new';
     return (
-      <Subscribe to={[ResourcesContainer]}>
+      <Subscribe to={[SettingsState]}>
         {({ state: { resources } }) => (
           <Query
             fetchPolicy="cache-and-network"

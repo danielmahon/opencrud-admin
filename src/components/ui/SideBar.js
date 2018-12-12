@@ -11,14 +11,8 @@ import styled, { withTheme } from 'styled-components';
 import { capitalize, lowerCase } from 'lodash';
 import pluralize from 'pluralize';
 import { Location, Link } from '@reach/router';
-
 import Text from '../ui/Text';
-import {
-  Subscribe,
-  AuthState,
-  SidebarContainer,
-  ResourcesContainer,
-} from '../../state';
+import { Subscribe, AuthState, UIState, SettingsState } from '../../state';
 
 const StyledDrawer = styled(Drawer)`
   position: fixed;
@@ -48,10 +42,10 @@ class SideBar extends PureComponent {
     const { theme } = this.props;
     const isPhone = theme.device.isPhone;
     return (
-      <Subscribe to={[AuthState, SidebarContainer, ResourcesContainer]}>
+      <Subscribe to={[AuthState, UIState, SettingsState]}>
         {(
           { state: { isAuth, isLoggingOut, user }, logout },
-          { state: sidebar, toggleSidebar, handleCloseSidebar },
+          { state: { sidebar, toggleSidebar, handleCloseSidebar } },
           { state: { resources } }
         ) => {
           return (
@@ -82,14 +76,6 @@ class SideBar extends PureComponent {
                         }}
                         activated={'/' === location.pathname}>
                         <ListItemGraphic icon="home" /> Home
-                      </ListItem>
-                      <ListItem
-                        disabled
-                        onClick={() => {
-                          if (isPhone) handleCloseSidebar();
-                        }}
-                        activated={'/help' === location.pathname}>
-                        <ListItemGraphic icon="help" /> How to Use
                       </ListItem>
                     </List>
                   </DrawerContent>

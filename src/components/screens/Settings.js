@@ -5,16 +5,16 @@ import { Helmet } from 'react-helmet';
 
 import Text from '../ui/Text';
 
-class Dashboard extends PureComponent {
+class Settings extends PureComponent {
   render() {
     return (
       <Grid>
-        <Helmet title="Mission Control" />
+        <Helmet title="Settings" />
         <GridCell span={12}>
-          <Text>Dashboard [WIP]</Text>
+          <Text>Settings [WIP]</Text>
         </GridCell>
       </Grid>
     );
   }
 }
-export default Dashboard;
+export default Settings;

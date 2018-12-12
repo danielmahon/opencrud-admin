@@ -12,8 +12,9 @@ const { InlineToolbar: DefaultInlineToolbar } = inlineToolbarPlugin;
 const linkPlugin = createLinkPlugin();
 
 const InlineToolbarWrapper = styled('div')`
-  > div {
+  [class^='draftJsToolbar__toolbar'] {
     z-index: 10;
+    border-radius: 0.25rem;
   }
 `;
 

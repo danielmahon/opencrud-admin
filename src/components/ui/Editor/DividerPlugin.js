@@ -52,13 +52,13 @@ const createDividerPlugin = ({ entityType = 'divider', focusPlugin } = {}) => {
       return (
         <IconButton
           type="button"
+          icon="remove"
           onClick={event => {
             event.preventDefault();
             const editorState = getEditorState();
             const newEditorState = addComponent(entityType)(editorState);
             setEditorState(newEditorState);
           }}
-          icon="vertical_align_center"
         />
       );
     },

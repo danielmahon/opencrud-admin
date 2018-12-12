@@ -2,33 +2,41 @@ import React, { Component, Fragment } from 'react';
 import createSideToolbarPlugin from 'draft-js-side-toolbar-plugin';
 import styled from 'styled-components';
 import { IconButton } from '@rmwc/icon-button';
+import addIcon from '../../../images/baseline-add-24px.svg';
+import expandIcon from '../../../images/baseline-expand_more-24px.svg';
 
 // Setting the side Toolbar at right position(default is left) and styling with custom theme
 const sideToolbarPlugin = createSideToolbarPlugin();
 const { SideToolbar: DefaultSideToolbar } = sideToolbarPlugin;
 
 const SideToolbarWrapper = styled('div')`
-  [class*='wrapper'] {
+  [class^='draftJsToolbar__wrapper'] {
     z-index: 8;
     left: -1.125rem !important;
     /* transform: scale(1) !important; */
     /* visibility: visible !important; */
-    /* [class*='blockType'] {
-      border: 1px solid white;
-      background: var(--mdc-theme-text-primary-on-background);
+    [class*='draftJsToolbar__blockType'] {
+      transition: transform 200ms ease, display 200ms ease;
       svg {
-        fill: var(--mdc-theme-text-primary-on-dark);
+        display: none;
       }
-    } */
-    [class*='popup'] {
+      ::before {
+        content: url(${addIcon});
+        display: ${props => (props['data-active'] ? 'none' : 'block')};
+      }
+      ::after {
+        content: url(${expandIcon});
+        display: ${props => (props['data-active'] ? 'block' : 'none')};
+      }
+      transform: rotate(${props => (props['data-active'] ? 0 : '-90deg')});
+    }
+    [class*='draftJsToolbar__popup'] {
       width: auto;
+      border-radius: 0.25rem;
       /* transform: scale(1) !important; */
       /* visibility: visible !important; */
     }
   }
-`;
-const StyledDefaultSideToolbar = styled(DefaultSideToolbar)`
-  background: red;
 `;
 
 class AddImageButton extends Component {
@@ -45,12 +53,16 @@ class AddImageButton extends Component {
 }
 
 class SideToolbar extends Component {
+  state = { active: false };
   render() {
     const { plugins, buttons } = this.props;
     const { imagePlugin } = plugins;
     return (
-      <SideToolbarWrapper>
-        <StyledDefaultSideToolbar>
+      <SideToolbarWrapper
+        onMouseOver={() => this.setState({ active: true })}
+        onMouseLeave={() => this.setState({ active: false })}
+        data-active={this.state.active}>
+        <DefaultSideToolbar>
           {// may be use React.Fragment instead of div to improve perfomance after React 16
           externalProps => {
             return (
@@ -62,7 +74,7 @@ class SideToolbar extends Component {
               </Fragment>
             );
           }}
-        </StyledDefaultSideToolbar>
+        </DefaultSideToolbar>
       </SideToolbarWrapper>
     );
   }

@@ -1,6 +1,6 @@
 {
   "name": "opencrud-admin",
-  "version": "0.0.3-alpha",
+  "version": "0.0.3",
   "dependencies": {
     "@reach/router": "1.2.1",
     "@uppy/aws-s3": "0.28.0",

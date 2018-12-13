@@ -7,7 +7,7 @@ I built this as a proof of concept and for a more prisma-centric "react-admin". 
 
 The goal is to provide a CMS to connect to YOUR server, which in turn communicates with Prisma. As per Prisma's suggestions you should never expose your Prisma database directly to the client. Right now this CMS expects your server's GraphQL API to follow OpenCRUD standards, like Prisma does.
 
-![](https://github.com/danielmahon/opencrud-admin/blob/master/public/demo.gif)
+![](https://github.com/danielmahon/opencrud-admin/blob/master/public/demo.gif?raw=true)
 
 ## Current Requirements
 

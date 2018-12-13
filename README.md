@@ -31,6 +31,7 @@ Clone this repo
 ```
 git clone danielmahon/opencrud-admin
 cd opencrud-admin
+yarn install
 ```
 
 Edit files in `src/config` to match your GraphQL server and "Resource" configuration.
@@ -51,6 +52,7 @@ Create a new app with `create-react-app`
 ```
 yarn create react-app my-app
 cd my-app
+yarn add opencrud-admin
 ```
 
 In `src/index.js` replace the `App` import from `./App.js` to `opencrud-admin`

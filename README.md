@@ -1,4 +1,4 @@
-# prisma-cms
+# opencrud-admin
 
 THIS IS A WORK-IN-PROGRESS!
 (you will need to tinker with it)
@@ -7,7 +7,7 @@ I built this as a proof of concept and for a more prisma-centric "react-admin". 
 
 The goal is to provide a CMS to connect to YOUR server, which in turn communicates with Prisma. As per Prisma's suggestions you should never expose your Prisma database directly to the client. Right now this CMS expects your server's GraphQL API to follow OpenCRUD standards, like Prisma does.
 
-![](https://github.com/danielmahon/prisma-cms/blob/master/public/screenshot.png)
+![](https://github.com/danielmahon/opencrud-admin/blob/master/public/demo.gif)
 
 ## Current Requirements
 
@@ -21,10 +21,30 @@ The goal is to provide a CMS to connect to YOUR server, which in turn communicat
 ## Install
 
 ```
-yarn add prisma-cms
+yarn add opencrud-admin
 ```
 
-## Usage
+## Use as app (recommended)
+
+Clone this repo
+
+```
+git clone danielmahon/opencrud-admin
+cd opencrud-admin
+```
+
+Edit files in `src/config` to match your GraphQL server and "Resource" configuration.
+This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app), so you can follow instructions there for local development and deployment.
+
+Run your app in development mode.
+
+```
+yarn start
+```
+
+If you want to install this as a library into another app, see below. This is difficult at the moment as the configuration is currently hardcoded to the config folder. Soon, you will be able to dynamically create the config at runtime.
+
+## Use as library (Soon™)
 
 Create a new app with `create-react-app`
 
@@ -33,14 +53,14 @@ yarn create react-app my-app
 cd my-app
 ```
 
-In `src/index.js` replace the `App` import from `./App.js` to `prisma-cms`
+In `src/index.js` replace the `App` import from `./App.js` to `opencrud-admin`
 
 ```js
 // src/index.js
 
 import React from 'react';
 import ReactDOM from 'react-dom';
-import App from 'prisma-cms';
+import App from 'opencrud-admin';
 import './index.css';
 import * as serviceWorker from './serviceWorker';
 

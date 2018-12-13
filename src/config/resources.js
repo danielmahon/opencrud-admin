@@ -51,7 +51,7 @@ export const resources = [
   },
   {
     type: 'Image',
-    description: 'Image repository served by imgix',
+    description: 'Image repository served by imgix.',
     icon: 'collections',
     list: {
       fields: [

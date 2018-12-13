@@ -6,6 +6,8 @@ import { plural } from 'pluralize';
 import { remote } from '../graphs';
 import { resources } from '../config';
 
+console.log(remote);
+
 const isNotGraphqlPrivateType = type => !type.name.startsWith('__');
 
 const isSubObject = field => {

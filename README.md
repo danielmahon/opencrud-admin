@@ -1,7 +1,9 @@
 # opencrud-admin
 
-THIS IS A WORK-IN-PROGRESS!
-(you will need to tinker with it)
+:warning: THIS IS A WORK-IN-PROGRESS!
+(this will not work for you "out of the box")
+
+It is currently tightly coupled to a specific GraphQL Schema until I work out ways to allow for easier customization. The ultimate goal will allow for customizations to be made by the developer and/or a content editor.
 
 I built this as a proof of concept and for a more prisma-centric "react-admin". If this works out well, I may choose to support it long-term, as Prisma is an excellent database API but with no real open-source CMS.
 

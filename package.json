@@ -1,6 +1,6 @@
 {
   "name": "opencrud-admin",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "dependencies": {
     "@material-ui/core": "3.6.2",
     "@reach/router": "1.2.1",

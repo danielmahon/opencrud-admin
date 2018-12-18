@@ -1,50 +1,34 @@
 import React, { PureComponent, Fragment } from 'react';
 import { Redirect, navigate } from '@reach/router';
 import { Grid, GridCell, GridInner } from '@rmwc/grid';
-import { Checkbox } from '@rmwc/checkbox';
 import { Button, ButtonIcon } from '@rmwc/button';
-import { Select } from '@rmwc/select';
 import { TabBar, Tab } from '@rmwc/tabs';
-import { IconButton } from '@rmwc/icon-button';
 import { Query, Mutation } from 'react-apollo';
 import { capitalize, has, startCase, get, unionBy, reject } from 'lodash';
-import { DateTime } from 'luxon';
 import { plural } from 'pluralize';
-import { TextField, TextFieldHelperText } from '@rmwc/textfield';
 import { CircularProgress } from '@rmwc/circular-progress';
 import styled from 'styled-components';
 import { Fab } from '@rmwc/fab';
-import { buildURL } from 'react-imgix';
-import { Formik, Form, Field, ErrorMessage } from 'formik';
-import Uppy from '@uppy/core';
-import AwsS3 from '@uppy/aws-s3';
-import { Dashboard } from '@uppy/react';
-// import Url from 'url-parse';
+import { Formik, Form, Field } from 'formik';
 import { Helmet } from 'react-helmet';
-import { Elevation } from '@rmwc/elevation';
-import SparkMD5 from 'spark-md5';
-import ChunkedFileReader from 'chunked-file-reader';
-// import hasha from 'hasha';
 import * as yup from 'yup';
 
 import { remote } from '../../graphs';
-// import { DefaultLayout } from '../layouts';
+import {
+  FormikSelect,
+  FormikCheckbox,
+  FormikTextField,
+  FormikReferenceField,
+  FormikDateField,
+  FormikImageField,
+  FormikListField,
+} from '../ui/forms';
 import {
   filterVariables,
-  getType,
+  getTypeName,
   isSubObject,
-} from '../../providers/GraphqlProvider';
-import { Subscribe, SettingsState } from '../../state';
+} from '../../providers/RemoteGraphProvider';
 import { Editor } from '../ui/Editor';
-
-// import Text from '../ui/Text';
-// import Placeholder from '../ui/Placeholder';
-
-// const ContentGridCell = styled(GridCell)`
-//   border: 2px solid ${props => lighten(0.5, props.theme.rmwc.primary)};
-//   border-radius: 4px;
-//   padding: 1rem;
-// `;
 
 const FabActions = styled('div')`
   position: fixed;
@@ -66,282 +50,9 @@ const DangerButton = styled(Button)`
   --mdc-theme-primary: ${({ theme }) => theme.rmwc.error};
 `;
 
-const FormikDateField = ({
-  field: { value, ...field }, // { name, value, onChange, onBlur }
-  form: { touched, errors }, // also values, setXXXX, handleXXXX, dirty, isValid, status, etc.
-  help,
-  ...props
-}) => {
-  let date = DateTime.fromISO(value);
-  if (date.isValid) {
-    date = `${date.toISODate()}T${date.toLocaleString(
-      DateTime.TIME_24_SIMPLE
-    )}`;
-  } else {
-    date = '';
-  }
-
-  return (
-    <Fragment>
-      <TextField type="datetime-local" value={date} {...field} {...props} />
-      {help && <TextFieldHelperText persistent>{help}</TextFieldHelperText>}
-      <ErrorMessage name={field.name} component={TextFieldHelperText} />
-    </Fragment>
-  );
-};
-
-const FormikTextField = ({
-  field: { value, ...field }, // { name, value, onChange, onBlur }
-  form, // also values, setXXXX, handleXXXX, dirty, isValid, status, etc.
-  help,
-  ...props
-}) => {
-  return (
-    <Fragment>
-      <TextField
-        invalid={form.errors[field.name]}
-        type="text"
-        value={value || ''}
-        {...field}
-        {...props}
-      />
-      {help && <TextFieldHelperText persistent>{help}</TextFieldHelperText>}
-      <ErrorMessage
-        name={field.name}
-        component={TextFieldHelperText}
-        persistent
-        validationMsg
-      />
-    </Fragment>
-  );
-};
-
-class FormikImageField extends PureComponent {
-  constructor(props) {
-    super(props);
-    this.uppy = Uppy({
-      restrictions: { maxNumberOfFiles: 1 },
-      autoProceed: false,
-    });
-    this.uppy.use(AwsS3, {
-      limit: 1,
-      timeout: 1000 * 60 * 60,
-      getUploadParameters: async file => {
-        // Add fingerprint to file
-        const checksum = await this.getFileMD5(file.data);
-        // Send a request to our signing endpoint.
-        const response = await fetch(
-          process.env.REACT_APP_GRAPHQL_ENDPOINT + '/getSignedUrl',
-          {
-            method: 'post',
-            // Send and receive JSON.
-            headers: {
-              accept: 'application/json',
-              'content-type': 'application/json',
-            },
-            body: JSON.stringify({
-              filename: file.name,
-              contentType: file.type,
-              checksum,
-            }),
-          }
-        );
-        const result = await response.json();
-        if (result.error) throw new Error(result.error);
-        return result;
-      },
-    });
-    this.uppy.on('upload-error', (file, error) => {
-      this.uppy.info(error, 'error', 5000);
-    });
-    this.uppy.on('complete', result => {
-      if (result.failed.length || !result.successful.length) return;
-      const meta = result.successful[0].meta;
-      props.form.setValues({
-        src: `${process.env.REACT_APP_IMGIX_ENDPOINT}/${meta.key}`,
-        filename: meta.filename,
-        checksum: meta.checksum,
-      });
-      props.form.submitForm();
-    });
-  }
-  getFileMD5 = file => {
-    return new Promise((resolve, reject) => {
-      const spark = new SparkMD5.ArrayBuffer();
-      const reader = new ChunkedFileReader();
-      reader.subscribe('chunk', e => {
-        spark.append(e.chunk);
-      });
-      reader.subscribe('end', e => {
-        const rawHash = spark.end();
-        resolve(rawHash);
-      });
-      reader.readChunks(file);
-    });
-  };
-  componentWillUnmount = () => {
-    this.uppy.close();
-  };
-  render() {
-    const {
-      field: { value, ...field }, // { name, value, onChange, onBlur }
-      form, // also values, setXXXX, handleXXXX, dirty, isValid, status, etc.
-      help,
-      ...props
-    } = this.props;
-
-    return (
-      <Fragment>
-        {value && (
-          <Elevation
-            z={4}
-            style={{
-              display: 'inline-flex',
-              borderRadius: '.25rem',
-              overflow: 'hidden',
-              marginBottom: '1rem',
-            }}>
-            <img
-              src={buildURL(value, {
-                height: 480,
-                fit: 'max',
-              })}
-              alt="preview"
-              style={{
-                maxWidth: '100%',
-              }}
-            />
-          </Elevation>
-        )}
-        {value && (
-          <TextField
-            {...field}
-            {...props}
-            type="text"
-            value={value || ''}
-            disabled
-          />
-        )}
-        {this.uppy && !value && (
-          <Dashboard
-            {...field}
-            {...props}
-            uppy={this.uppy}
-            plugins={['AwsS3', 'GoogleDrive']}
-            width={1920}
-            height={400}
-            // note="Images and video only, 2–3 files, up to 1 MB"
-            proudlyDisplayPoweredByUppy={false}
-          />
-        )}
-        {help && <TextFieldHelperText persistent>{help}</TextFieldHelperText>}
-        <ErrorMessage name={field.name} component={TextFieldHelperText} />
-      </Fragment>
-    );
-  }
-}
-
-const FormikCheckbox = ({
-  field: { value, ...field }, // { name, value, onChange, onBlur }
-  form: { touched, errors }, // also values, setXXXX, handleXXXX, dirty, isValid, status, etc.
-  help,
-  ...props
-}) => (
-  <Fragment>
-    <Checkbox checked={!!value} {...field} {...props} />
-    {help && <TextFieldHelperText persistent>{help}</TextFieldHelperText>}
-    <ErrorMessage name={field.name} component={TextFieldHelperText} />
-  </Fragment>
-);
-
-const FormikReferenceField = ({
-  field, // { name, value, onChange, onBlur }
-  form: { touched, errors }, // also values, setXXXX, handleXXXX, dirty, isValid, status, etc.
-  help,
-  referenceType,
-  referenceLabel,
-  referencePath,
-  ...props
-}) => (
-  <Query query={remote.query[`${referenceType}Connection`]}>
-    {({ loading, data }) => {
-      if (loading) {
-        return (
-          <Fragment>
-            <Select
-              label={field.name}
-              options={['Loading...']}
-              value={'Loading...'}
-            />
-            <IconButton disabled type="button" icon={<CircularProgress />} />
-          </Fragment>
-        );
-      }
-      const name = `${referenceType}Connection`;
-      const items = data[name].edges
-        .map(e => e.node)
-        .map(item => {
-          const label =
-            item[referenceLabel] || item.name || item.title || item.id;
-          return {
-            label: label,
-            value: item.id,
-            key: item.id,
-          };
-        });
-      return (
-        <Fragment>
-          <Select {...field} {...props} options={items} />
-          {referencePath && (
-            <IconButton
-              type="button"
-              icon="link"
-              onClick={() => navigate(referencePath)}
-            />
-          )}
-          {help && <TextFieldHelperText persistent>{help}</TextFieldHelperText>}
-          <ErrorMessage name={field.name} component={TextFieldHelperText} />
-        </Fragment>
-      );
-    }}
-  </Query>
-);
-
-const FormikSelectField = ({
-  field, // { name, value, onChange, onBlur }
-  form: { touched, errors }, // also values, setXXXX, handleXXXX, dirty, isValid, status, etc.
-  path,
-  help,
-  ...props
-}) => {
-  const type = remote.schema.types.find(
-    type => type.name.toLowerCase() === field.name
-  );
-  const items = type.enumValues.map(e => {
-    return {
-      label: e.name,
-      value: e.name,
-    };
-  });
-  return (
-    <Fragment>
-      <Select {...field} {...props} options={items} />
-      {help && <TextFieldHelperText persistent>{help}</TextFieldHelperText>}
-      <ErrorMessage name={field.name} component={TextFieldHelperText} />
-    </Fragment>
-  );
-};
-
-const getInitialValues = (item, resource, allSchemaFields) => {
-  return Object.values(resource.edit.fields).reduce((acc, field) => {
-    // Is reference
-    const schemaField = allSchemaFields.find(f => f.name === field.source);
-    if (isSubObject(schemaField)) {
-      acc[field.source] = get(item, `${field.source}.id`);
-    } else {
-      acc[field.source] = get(item, field.source);
-    }
-    return acc;
+const getInitialValues = (item, modelConfig) => {
+  return modelConfig.editFields.reduce((acc, field) => {
+    return { ...acc, [field.name]: item[field.name] };
   }, {});
 };
 
@@ -356,8 +67,8 @@ class ResourceEdit extends PureComponent {
     );
     const isNew = resourceId === 'new';
     return (
-      <Subscribe to={[SettingsState]}>
-        {({ state: { resources } }) => (
+      <Query query={remote.query.modelConfigsConnection}>
+        {({ data: { modelConfigsConnection } }) => (
           <Query
             fetchPolicy="cache-and-network"
             query={remote.query[resourceParam]}
@@ -371,17 +82,18 @@ class ResourceEdit extends PureComponent {
               }
               // Format fields
               let item = isNew ? {} : data[resourceParam];
-              const resource = resources.find(
-                r => r.type === capitalize(resourceParam)
-              );
+              const config = modelConfigsConnection.edges
+                .map(e => e.node)
+                .find(node => node.type === capitalize(resourceParam));
               // Create validation schema
-              const schemaFields = remote.schema.types.find(
-                type => type.name === capitalize(resource.type)
-              ).fields;
+              const schemaType = remote.schema.types.find(
+                ({ name }) => name === config.type
+              );
+              const schemaFields = schemaType.fields;
               const schemaInputFields = remote.schema.types.find(
                 type =>
                   type.name ===
-                  `${capitalize(resource.type)}${
+                  `${capitalize(config.type)}${
                     isNew ? 'CreateInput' : 'UpdateInput'
                   }`
               ).inputFields;
@@ -390,23 +102,19 @@ class ResourceEdit extends PureComponent {
                 schemaFields,
                 'name'
               );
-              const initialValues = getInitialValues(
-                item,
-                resource,
-                allSchemaFields
-              );
+              const initialValues = getInitialValues(item, config);
               const title =
                 initialValues.name ||
                 initialValues.title ||
                 capitalize(resourceId);
               const ResourceEditSchema = schemaInputFields.reduce(
-                (acc, field) => {
-                  const typeName = getType(field).name;
-                  const typeKind = field.type.kind;
-                  const config = resource.edit.fields.find(
-                    f => f.source === field.name
+                (acc, inputField) => {
+                  const typeName = getTypeName(inputField.type);
+                  const typeKind = inputField.type.kind;
+                  const fieldConfig = config.editFields.find(
+                    ({ name }) => name === inputField.name
                   );
-                  if (!config) return acc;
+                  if (!fieldConfig) return acc;
                   let schema = yup;
                   if (
                     ['String', 'ID'].includes(typeName) ||
@@ -418,21 +126,23 @@ class ResourceEdit extends PureComponent {
                   } else {
                     return acc;
                   }
-                  if (['Email'].includes(config.type)) {
+                  if (['Email'].includes(fieldConfig.type)) {
                     schema = schema.email('Please enter a valid email');
                   }
                   if (typeKind === 'NON_NULL') {
                     schema = schema.required('Required');
+                  } else {
+                    schema = schema.nullable();
                   }
 
-                  acc[field.name] = schema;
+                  acc[inputField.name] = schema;
 
-                  if (['Password'].includes(config.type)) {
+                  if (['Password'].includes(fieldConfig.type)) {
                     schema = schema.oneOf(
-                      [yup.ref(field.name)],
+                      [yup.ref(inputField.name)],
                       'Passwords must match'
                     );
-                    acc[`${field.name}Confirm`] = schema;
+                    acc[`${inputField.name}Confirm`] = schema;
                   }
 
                   return acc;
@@ -451,9 +161,9 @@ class ResourceEdit extends PureComponent {
                         this.setState({ activeTab: evt.detail.index })
                       }>
                       <Tab icon="edit">Edit</Tab>
-                      <Tab icon="pageview" disabled>
+                      {/* <Tab icon="pageview" disabled>
                         Preview
-                      </Tab>
+                      </Tab> */}
                     </TabBar>
                   </GridCell>
 
@@ -482,23 +192,24 @@ class ResourceEdit extends PureComponent {
                           );
                         }
                         // Reset form values with updated data
-                        resetForm(
-                          getInitialValues(
-                            data[name],
-                            resource,
-                            allSchemaFields
-                          )
-                        );
+                        resetForm(getInitialValues(data[name], config));
                       } catch ({ graphQLErrors }) {
                         setSubmitting(false);
                         if (graphQLErrors) {
                           graphQLErrors.forEach(error => {
-                            setFieldError(error.data.field, error.message);
+                            if (error.data) {
+                              return setFieldError(
+                                error.data.field,
+                                error.message
+                              );
+                            }
+                            window.alert(error.message);
                           });
                         }
                       }
                     }}>
                     {({
+                      values,
                       isSubmitting,
                       dirty,
                       resetForm,
@@ -524,122 +235,153 @@ class ResourceEdit extends PureComponent {
                               }
                             }}>
                             <GridInner>
-                              {resource.edit.fields.map((field, idx) => {
+                              {config.editFields.map((fieldConfig, idx) => {
                                 const schemaField = allSchemaFields.find(
-                                  f => f.name === field.source
+                                  ({ name }) => name === fieldConfig.name
                                 );
-                                const name = schemaField.name;
-                                const typeName = getType(schemaField).name;
-                                const typeKind = schemaField.type.kind;
-                                const type = field.type
-                                  ? field.type.split(':')[0]
-                                  : typeKind === 'ENUM'
-                                  ? typeKind
-                                  : typeName;
+                                const schemaType = remote.schema.types.find(
+                                  ({ name }) => name === fieldConfig.type
+                                );
+                                const typeKind = schemaType.kind;
+                                const typeName = fieldConfig.type;
+                                const fieldName = fieldConfig.name;
+
                                 let disabled =
-                                  field.disabled ||
-                                  schemaField.__typename === '__Field';
+                                  schemaField.__typename !== '__InputValue';
 
-                                if (isNew && disabled) return null;
+                                if (
+                                  (isNew && disabled) ||
+                                  !fieldConfig.enabled
+                                ) {
+                                  return null;
+                                }
 
-                                if (type === 'Editor') {
+                                if (
+                                  typeName === 'Json' &&
+                                  values[fieldName].hasOwnProperty('blocks') &&
+                                  values[fieldName].hasOwnProperty('entityMap')
+                                ) {
                                   return (
-                                    <GridCell span={12} key={name}>
+                                    <GridCell span={12} key={fieldName}>
                                       <Field
-                                        name={name}
-                                        label={startCase(name)}
+                                        name={fieldName}
+                                        label={startCase(fieldName)}
                                         component={Editor}
-                                        config={field}
+                                        config={fieldConfig}
                                       />
                                     </GridCell>
                                   );
-                                }
-                                if (type === 'ENUM') {
+                                } else if (typeName === 'Json') {
                                   return (
-                                    <GridCell span={12} key={name}>
+                                    <GridCell span={12} key={fieldName}>
+                                      <Button disabled>
+                                        <ButtonIcon icon="storage" />
+                                        {startCase(fieldName)} (JSON)
+                                      </Button>
+                                    </GridCell>
+                                  );
+                                }
+                                if (typeKind === 'ENUM') {
+                                  return (
+                                    <GridCell span={12} key={fieldName}>
                                       <Field
-                                        component={FormikSelectField}
-                                        name={name}
+                                        component={FormikSelect}
+                                        name={fieldName}
                                         disabled={disabled}
-                                        label={startCase(name)}
+                                        label={startCase(fieldName)}
                                       />
                                     </GridCell>
                                   );
                                 }
-                                if (type === 'DateTime') {
+                                if (typeName === 'DateTime') {
                                   return (
-                                    <GridCell span={12} key={name}>
+                                    <GridCell span={12} key={fieldName}>
                                       <Field
                                         component={FormikDateField}
-                                        name={name}
+                                        name={fieldName}
                                         disabled={disabled}
-                                        label={startCase(name)}
+                                        label={startCase(fieldName)}
+                                      />
+                                    </GridCell>
+                                  );
+                                }
+                                if (schemaField.type.kind === 'LIST') {
+                                  return (
+                                    <GridCell span={12} key={fieldName}>
+                                      <Field
+                                        component={FormikListField}
+                                        name={fieldName}
+                                        disabled={disabled}
+                                        label={startCase(fieldName)}
                                       />
                                     </GridCell>
                                   );
                                 }
                                 if (isSubObject(schemaField)) {
-                                  const referenceObject = get(item, name);
-                                  const referenceType = getType(
-                                    schemaField
-                                  ).name.toLowerCase();
+                                  const referenceObject = get(item, fieldName);
+                                  const referenceType = getTypeName(
+                                    schemaField.type
+                                  ).toLowerCase();
                                   const referencePath = isNew
                                     ? null
                                     : `/edit/${referenceType}/${
                                         referenceObject.id
                                       }`;
                                   return (
-                                    <GridCell span={12} key={name}>
+                                    <GridCell span={12} key={fieldName}>
                                       <Field
                                         component={FormikReferenceField}
-                                        name={name}
-                                        label={startCase(name)}
+                                        name={fieldName}
+                                        label={startCase(fieldName)}
                                         referenceType={plural(referenceType)}
-                                        referenceLabel={field.reference}
+                                        referenceLabel={fieldConfig.reference}
                                         referencePath={referencePath}
                                       />
                                     </GridCell>
                                   );
                                 }
-                                if (type === 'Boolean') {
+                                if (typeName === 'Boolean') {
                                   return (
-                                    <GridCell span={12} key={name}>
+                                    <GridCell span={12} key={fieldName}>
                                       <Field
                                         component={FormikCheckbox}
-                                        name={name}
+                                        name={fieldName}
                                         disabled={disabled}
-                                        label={startCase(name)}
+                                        label={startCase(fieldName)}
                                       />
                                     </GridCell>
                                   );
                                 }
-                                if (type === 'Image') {
+                                if (
+                                  typeName === 'String' &&
+                                  fieldName === 'src'
+                                ) {
                                   return (
-                                    <GridCell span={12} key={name}>
+                                    <GridCell span={12} key={fieldName}>
                                       <Field
                                         style={{ width: '100%' }}
                                         component={FormikImageField}
-                                        name={name}
+                                        name={fieldName}
                                         disabled={disabled}
-                                        label={startCase(name)}
+                                        label={startCase(fieldName)}
                                       />
                                     </GridCell>
                                   );
                                 }
-                                if (type === 'Password') {
+                                if (typeName === 'Password') {
                                   return (
-                                    <Fragment key={name}>
+                                    <Fragment key={fieldName}>
                                       <GridCell span={12}>
                                         <Field
                                           style={{ width: '100%' }}
                                           type="password"
                                           autoComplete="new-password"
                                           component={FormikTextField}
-                                          name={name}
+                                          name={fieldName}
                                           disabled={disabled}
                                           label={
                                             isNew
-                                              ? startCase(name)
+                                              ? startCase(fieldName)
                                               : 'Enter New Password'
                                           }
                                         />
@@ -651,7 +393,7 @@ class ResourceEdit extends PureComponent {
                                           disabled={disabled}
                                           autoComplete="new-password"
                                           component={FormikTextField}
-                                          name={`${name}Confirm`}
+                                          name={`${fieldName}Confirm`}
                                           label={
                                             isNew
                                               ? 'Confirm Password'
@@ -663,13 +405,13 @@ class ResourceEdit extends PureComponent {
                                   );
                                 }
                                 return (
-                                  <GridCell span={12} key={name}>
+                                  <GridCell span={12} key={fieldName}>
                                     <Field
                                       style={{ width: '100%' }}
                                       disabled={disabled}
                                       component={FormikTextField}
-                                      name={name}
-                                      label={startCase(name)}
+                                      name={fieldName}
+                                      label={startCase(fieldName)}
                                     />
                                   </GridCell>
                                 );
@@ -755,7 +497,7 @@ class ResourceEdit extends PureComponent {
             }}
           </Query>
         )}
-      </Subscribe>
+      </Query>
     );
   }
 }

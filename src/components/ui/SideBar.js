@@ -11,9 +11,11 @@ import styled, { ThemeConsumer } from 'styled-components';
 import { capitalize, lowerCase } from 'lodash';
 import pluralize from 'pluralize';
 import { Location, Link } from '@reach/router';
+import { Query } from 'react-apollo';
 
 import Text from '../ui/Text';
 import { Subscribe, AuthState, UIState, SettingsState } from '../../state';
+import { remote } from '../../graphs';
 import pkg from '../../../package.json';
 
 const StyledDrawer = styled(Drawer)`
@@ -88,25 +90,45 @@ class SideBar extends PureComponent {
                             activated={'/' === location.pathname}>
                             <ListItemGraphic icon="dashboard" /> Dashboard
                           </ListItem>
-                          {resources.map(resource => {
-                            const label = capitalize(pluralize(resource.type));
-                            const pathname = `/list/${lowerCase(
-                              pluralize(resource.type)
-                            )}`;
-                            return (
-                              <ListItem
-                                onClick={() => {
-                                  if (isPhone) handleCloseSidebar();
-                                }}
-                                activated={pathname === location.pathname}
-                                key={resource.type}
-                                tag={Link}
-                                to={pathname}>
-                                <ListItemGraphic icon={resource.icon} />
-                                {label}
-                              </ListItem>
-                            );
-                          })}
+                          <Query query={remote.query.modelConfigsConnection}>
+                            {({ data, loading }) => {
+                              if (loading) return null;
+                              const models = data.modelConfigsConnection.edges.reduce(
+                                (acc, e) => {
+                                  if (e.node.enabled) acc.push(e.node);
+                                  return acc;
+                                },
+                                []
+                              );
+                              if (!models.length) {
+                                return (
+                                  <Text padded use="body2">
+                                    You haven't configured your models yet!
+                                    Click the "Configure" button to get started.
+                                  </Text>
+                                );
+                              }
+                              return models.map(model => {
+                                const label = capitalize(pluralize(model.type));
+                                const pathname = `/list/${lowerCase(
+                                  pluralize(model.type)
+                                )}`;
+                                return (
+                                  <ListItem
+                                    onClick={() => {
+                                      if (isPhone) handleCloseSidebar();
+                                    }}
+                                    activated={pathname === location.pathname}
+                                    key={model.type}
+                                    tag={Link}
+                                    to={pathname}>
+                                    <ListItemGraphic icon={model.icon} />
+                                    {label}
+                                  </ListItem>
+                                );
+                              });
+                            }}
+                          </Query>
                           <ListDivider />
                           <ListItem
                             tag={Link}
@@ -115,7 +137,7 @@ class SideBar extends PureComponent {
                               if (isPhone) handleCloseSidebar();
                             }}
                             activated={'/settings' === location.pathname}>
-                            <ListItemGraphic icon="settings" /> Settings
+                            <ListItemGraphic icon="settings" /> Configure
                           </ListItem>
                         </List>
                       </DrawerContent>

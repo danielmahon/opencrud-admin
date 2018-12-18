@@ -1,7 +1,7 @@
 import { theme } from '../config';
-import { PersistContainer } from '../providers/UnstatedProvider';
+import { Container } from '../providers/UnstatedProvider';
 
-class UIState extends PersistContainer {
+class UIState extends Container {
   state = {
     sidebar: {
       open: !theme.device.isPhone,

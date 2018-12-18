@@ -6,9 +6,10 @@ import { AuthState } from './AuthState';
 
 // Expose state containers
 // AuthState must be first!
-export const containers = [AuthState, UIState, SettingsState];
+const containers = [AuthState, UIState, SettingsState];
 // Expose these for convenience
 export {
+  containers,
   UIState,
   SettingsState,
   AuthState,

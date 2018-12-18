@@ -7,6 +7,27 @@ code {
     monospace;
 }
 
+/* Force style for webkit autofill */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px rgba(255, 222, 83, 0.25) inset;
+  border-radius: 0.25rem;
+  transition: background-color 99999s ease-in-out 0s,
+    color 99999s ease-in-out 0s;
+}
+
+/* Force floating label on autofill */
+.mdc-text-field--outlined
+  .mdc-text-field__input:-webkit-autofill
+  + .mdc-floating-label {
+  transform: translateY(-130%) scale(0.75) !important;
+}
+.mdc-text-field__input:-webkit-autofill + .mdc-floating-label {
+  z-index: 2 !important;
+}
+
 .mdc-list-item__graphic {
   margin-right: 1rem;
 }

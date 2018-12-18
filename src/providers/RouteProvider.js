@@ -1,5 +1,5 @@
-import React, { Fragment } from 'react';
-import { Router, Location } from '@reach/router';
+import React from 'react';
+import { Router, Location, Redirect } from '@reach/router';
 import { Transition, animated } from 'react-spring';
 
 import { MainLayout, AuthLayout } from '../components/layouts';
@@ -11,6 +11,7 @@ import NotFound from '../components/screens/NotFound';
 import Login from '../components/screens/Login';
 import Logout from '../components/screens/Logout';
 import { Subscribe, AuthState } from '../state';
+import { RemoteConfigProvider } from '../providers/RemoteConfigProvider';
 
 // const SlideTransitionRouter = ({ children }) => {
 //   return (
@@ -75,26 +76,39 @@ const FadeRouter = ({ children }) => {
   );
 };
 
-const RouteProvider = () => {
+const PrivateRoutes = ({ client }) => {
   return (
-    <Fragment>
-      <MainLayout>
-        <FadeRouter>
-          <Dashboard path="/" />
-          <Settings path="/settings" />
-          <ResourceList path="/list/:resource" />
-          <ResourceEdit path="/edit/:resource/:id" />
-          <Logout path="/logout" />
-          <NotFound default />
-        </FadeRouter>
-      </MainLayout>
-      <AuthLayout>
-        <FadeRouter>
-          <Login path="/login" />
-        </FadeRouter>
-      </AuthLayout>
-    </Fragment>
+    <Subscribe to={[AuthState]}>
+      {({ state: { isAuth } }) => {
+        if (!isAuth) return <Redirect to="/login" noThrow />;
+        return (
+          <RemoteConfigProvider client={client}>
+            <MainLayout>
+              <FadeRouter>
+                <Dashboard path="/" />
+                <Settings path="/settings" />
+                <Settings path="/settings/:modelParam" />
+                <ResourceList path="/list/:resource" />
+                <ResourceEdit path="/edit/:resource/:id" />
+                <Logout path="/logout" />
+                <NotFound default />
+              </FadeRouter>
+            </MainLayout>
+          </RemoteConfigProvider>
+        );
+      }}
+    </Subscribe>
   );
 };
 
-export default RouteProvider;
+const PublicRoutes = () => {
+  return (
+    <AuthLayout>
+      <FadeRouter>
+        <Login path="/login" />
+      </FadeRouter>
+    </AuthLayout>
+  );
+};
+
+export { PrivateRoutes, PublicRoutes };

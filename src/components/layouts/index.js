@@ -1,5 +1,4 @@
 import React, { Fragment, PureComponent } from 'react';
-import { Redirect } from '@reach/router';
 import { DrawerAppContent } from '@rmwc/drawer';
 import styled from 'styled-components';
 import { Helmet } from 'react-helmet';
@@ -23,27 +22,18 @@ export class MainLayout extends PureComponent {
     const { children } = this.props;
     const { title } = this.state;
     return (
-      <Subscribe to={[AuthState]}>
-        {({ state: { isAuth } }) => {
-          if (!isAuth) return <Redirect to="/login" noThrow />;
-          return (
-            <Fragment>
-              <Helmet
-                onChangeClientState={this.updateTitle}
-                titleTemplate={`%s${
-                  window.location.pathname === '/' ? '' : ' | Mission Control'
-                }`}
-              />
-              <AppBar title={title} />
-              <SideBar />
-              <StyledDrawerAppContent tag="main">
-                {children}
-              </StyledDrawerAppContent>
-              <footer />
-            </Fragment>
-          );
-        }}
-      </Subscribe>
+      <Fragment>
+        <Helmet
+          onChangeClientState={this.updateTitle}
+          titleTemplate={`%s${
+            window.location.pathname === '/' ? '' : ' | Mission Control'
+          }`}
+        />
+        <AppBar title={title} />
+        <SideBar />
+        <StyledDrawerAppContent tag="main">{children}</StyledDrawerAppContent>
+        <footer />
+      </Fragment>
     );
   }
 }

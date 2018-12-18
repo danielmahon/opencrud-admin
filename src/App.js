@@ -22,20 +22,22 @@ import './global.css';
 // Relative Imports
 import ApolloProvider from './providers/ApolloProvider';
 import ThemeProvider from './providers/ThemeProvider';
-import RouteProvider from './providers/RouteProvider';
+import { PrivateRoutes, PublicRoutes } from './providers/RouteProvider';
 import { UnstatedProvider } from './providers/UnstatedProvider';
-import { initGraphqlProvider } from './providers/GraphqlProvider';
-import { containers } from './state';
+import { RemoteGraphProvider } from './providers/RemoteGraphProvider';
 
 const App = () => (
-  <UnstatedProvider containers={containers}>
+  <UnstatedProvider>
     {getToken => (
-      <ApolloProvider
-        initGraphqlProvider={initGraphqlProvider}
-        getToken={getToken}>
-        <ThemeProvider>
-          <RouteProvider />
-        </ThemeProvider>
+      <ApolloProvider getToken={getToken}>
+        {client => (
+          <RemoteGraphProvider client={client}>
+            <ThemeProvider>
+              <PrivateRoutes client={client} />
+              <PublicRoutes />
+            </ThemeProvider>
+          </RemoteGraphProvider>
+        )}
       </ApolloProvider>
     )}
   </UnstatedProvider>

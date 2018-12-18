@@ -2,6 +2,7 @@ import React, { PureComponent } from 'react';
 import { Grid, GridCell } from '@rmwc/grid';
 import { CircularProgress } from '@rmwc/circular-progress';
 import styled from 'styled-components';
+import { Typography } from 'rmwc';
 
 const TallGrid = styled(Grid)`
   height: 100vh;
@@ -23,10 +24,16 @@ const TallGrid = styled(Grid)`
 
 class AppLoader extends PureComponent {
   render() {
+    const { message } = this.props;
     return (
       <TallGrid>
-        <GridCell span={12} align="middle">
+        <GridCell span={12} align="middle" style={{ textAlign: 'center' }}>
           <CircularProgress size="xlarge" />
+          {message && (
+            <Typography use="caption" tag="div">
+              {message}
+            </Typography>
+          )}
         </GridCell>
       </TallGrid>
     );

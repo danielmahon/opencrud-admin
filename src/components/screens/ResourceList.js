@@ -1,5 +1,5 @@
 import React, { PureComponent, Fragment } from 'react';
-import { Link, navigate } from '@reach/router';
+import { Link, navigate, Redirect } from '@reach/router';
 import { Grid, GridCell } from '@rmwc/grid';
 import { Fab } from '@rmwc/fab';
 import {
@@ -22,24 +22,24 @@ import Imgix from 'react-imgix';
 import { Helmet } from 'react-helmet';
 import { Chip, ChipSet } from '@rmwc/chip';
 import { Transition, animated } from 'react-spring';
-
+import { TypeKind } from 'graphql';
 import {
   truncate,
   startCase,
   capitalize,
   camelCase,
   omit,
-  get,
   union,
   without,
 } from 'lodash';
 import { DateTime } from 'luxon';
-import { singular } from 'pluralize';
+import { singular, plural } from 'pluralize';
 import styled from 'styled-components';
+import Tooltip from '@material-ui/core/Tooltip';
+import isRemoteUrl from 'is-absolute-url';
 
-import { Subscribe, SettingsState } from '../../state';
 import { remote } from '../../graphs';
-import { getType, isSubObject } from '../../providers/GraphqlProvider';
+import { isSubObject } from '../../providers/RemoteGraphProvider';
 import Text from '../ui/Text';
 import { Select } from 'rmwc';
 
@@ -70,7 +70,9 @@ const CardHeaderTitle = styled(Typography).attrs({
   line-height: 3rem;
 `;
 const CardHeaderButtons = styled('div')`
-  flex: none;
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
 `;
 const CardHeader = styled('div')`
   padding: 1rem 1.5rem;
@@ -158,12 +160,20 @@ class ResourceList extends PureComponent {
       window.scrollTo(0, 0);
     });
   };
-  formatCell = ({ item, field, type, reference, important = false }) => {
-    const value = get(item, field.name);
+  formatCell = ({ item, fieldConfig, reference }) => {
+    const value = item[fieldConfig.name];
+    const typeName = fieldConfig.type;
+    const type = remote.schema.types.find(({ name }) => name === typeName);
     if (value === undefined) {
-      throw new Error('Invalid source, check config.');
+      throw new Error('Invalid field config, check configuration.');
     }
-    if (type === 'Image') {
+    if (value === null) {
+      return <Typography theme="textHintOnBackground">none</Typography>;
+    }
+    if (['Json'].includes(typeName)) {
+      return <Icon icon="storage" theme="textHintOnBackground" />;
+    }
+    if (typeName === 'Image') {
       return (
         <Imgix
           src={value}
@@ -173,7 +183,7 @@ class ResourceList extends PureComponent {
         />
       );
     }
-    if (type === 'Boolean') {
+    if (typeName === 'Boolean') {
       return (
         <Icon
           icon={value ? 'check' : 'close'}
@@ -181,35 +191,49 @@ class ResourceList extends PureComponent {
         />
       );
     }
-    if (type === 'DateTime') {
+    if (typeName === 'DateTime') {
       const date = DateTime.fromISO(value);
       return date.isValid ? date.toLocaleString() : 'Error:' + value;
     }
-    if (type === 'ENUM') {
+    if (type.kind === TypeKind.ENUM) {
       return (
         <ChipSet>
           <SmallChip text={value} />
         </ChipSet>
       );
     }
-    if (type === 'String') {
+    if (['String', 'ID'].includes(typeName)) {
+      if (isRemoteUrl(value)) {
+        return (
+          <Button
+            dense
+            tag="a"
+            href={value}
+            target="_blank"
+            rel="noreferrer noopener">
+            <ButtonIcon icon="launch" />
+            {truncate(value.toString(), { length: 20 })}
+          </Button>
+        );
+      }
       return (
-        <Text use={important ? 'subtitle2' : 'body2'}>
-          {truncate(value.toString(), { length: 20 })}
-        </Text>
+        <Text use="body2">{truncate(value.toString(), { length: 20 })}</Text>
       );
     }
-    if (isSubObject(field)) {
-      const referenceObject = get(item, field.name);
+    if ([TypeKind.OBJECT].includes(type.kind)) {
       const referenceValue =
         value[reference] || value.name || value.title || value.id;
       return (
         <Button
           dense
           tag={Link}
-          to={`/edit/${camelCase(type)}/${referenceObject.id}`}>
+          to={
+            referenceValue
+              ? `/edit/${camelCase(typeName)}/${value.id}`
+              : `/list/${camelCase(plural(typeName))}`
+          }>
           <ButtonIcon icon="link" />
-          {truncate(referenceValue, { length: 20 })}
+          {truncate(referenceValue || plural(typeName), { length: 20 })}
         </Button>
       );
     }
@@ -221,36 +245,44 @@ class ResourceList extends PureComponent {
     const orderBy =
       sortDir < 0 ? `${sortKey}_ASC` : sortDir > 0 ? `${sortKey}_DESC` : null;
     const queryName = `${camelCase(resourceParam)}Connection`;
+    if (!remote.query[queryName] || resourceParam === 'modelConfigs')
+      return <Redirect to="/404" noThrow />;
     return (
       <Grid>
         <Helmet title={`List ${capitalize(resourceParam)}`} />
-        <Subscribe to={[SettingsState]}>
-          {({ state: { resources } }) => (
+        <Query query={remote.query.modelConfigsConnection}>
+          {({ data: { modelConfigsConnection } }) => (
             <Query
               fetchPolicy="cache-and-network"
               query={remote.query[queryName]}
               variables={{ orderBy, first, skip: page * first - first }}>
               {({ data, refetch, error }) => {
                 if (error) return <pre>{error.toString()}</pre>;
-                if (!data[queryName]) return null;
+                if (!data[queryName] || !modelConfigsConnection) return null;
 
                 const total = data[queryName].aggregate.count;
                 const start = page * first - first;
                 const end = Math.min(start + first, total);
 
-                const resource = resources.find(
+                const configs = modelConfigsConnection.edges.map(e => e.node);
+                const config = configs.find(
                   r => r.type === singular(capitalize(resourceParam))
                 );
-                const schemaFields = remote.schema.types.find(
-                  type => type.name === capitalize(resource.type)
-                ).fields;
+                const schemaType = remote.schema.types.find(
+                  type => type.name === capitalize(config.type)
+                );
+                const schemaFields = schemaType.fields;
 
                 const items = data[queryName].edges
                   .map(e => e.node)
                   .map(node => omit(node, '__typename'));
 
                 if (!items.length) {
-                  return <p>No results!</p>;
+                  return (
+                    <GridCell span={12}>
+                      <p>No results!</p>
+                    </GridCell>
+                  );
                 }
 
                 return (
@@ -308,6 +340,13 @@ class ResourceList extends PureComponent {
                                 </Transition>
                               )}
                             </Mutation>
+                            <IconButton
+                              type="button"
+                              icon="settings"
+                              onClick={() =>
+                                navigate(`/settings/${resourceParam}`)
+                              }
+                            />
                           </CardHeaderButtons>
                         </CardHeader>
                         <StyledDataTable>
@@ -320,33 +359,45 @@ class ResourceList extends PureComponent {
                                     checked={selected.length === end - start}
                                   />
                                 </DataTableHeadCell>
-                                {resource.list.fields.map((field, i) => {
-                                  const sortable =
-                                    field.source.indexOf('.') === -1;
-                                  return (
-                                    <DataTableHeadCell
-                                      alignStart={i === 0}
-                                      alignEnd={i > 0}
-                                      key={field.source}
-                                      sort={
-                                        sortable && sortKey === field.source
-                                          ? sortDir
-                                          : null
-                                      }
-                                      onSortChange={
-                                        sortable
-                                          ? direction => {
-                                              this.setState({
-                                                sortKey: field.source,
-                                                sortDir: direction,
-                                              });
-                                            }
-                                          : null
-                                      }>
-                                      {startCase(field.source)}
-                                    </DataTableHeadCell>
-                                  );
-                                })}
+                                {config.listFields
+                                  .filter(({ enabled }) => enabled)
+                                  .map((field, i) => {
+                                    const schemaField = schemaFields.find(
+                                      ({ name }) => name === field.name
+                                    );
+                                    const sortable = !isSubObject(schemaField);
+                                    const label =
+                                      field.label || startCase(field.name);
+                                    return (
+                                      <DataTableHeadCell
+                                        alignStart={i === 0}
+                                        alignEnd={i > 0}
+                                        key={field.name}
+                                        sort={
+                                          sortable && sortKey === field.name
+                                            ? sortDir
+                                            : null
+                                        }
+                                        onSortChange={
+                                          sortable
+                                            ? direction => {
+                                                this.setState({
+                                                  sortKey: field.name,
+                                                  sortDir: direction,
+                                                });
+                                              }
+                                            : null
+                                        }>
+                                        <Tooltip
+                                          title={field.name}
+                                          placement="top">
+                                          <Typography use="caption">
+                                            {label}
+                                          </Typography>
+                                        </Tooltip>
+                                      </DataTableHeadCell>
+                                    );
+                                  })}
                                 <DataTableHeadCell />
                               </DataTableRow>
                             </DataTableHead>
@@ -358,7 +409,16 @@ class ResourceList extends PureComponent {
                                     key={item.id}
                                     activated={this.state.active === idx}
                                     selected={isSelected}
-                                    onDoubleClick={() => {
+                                    onDoubleClick={evt => {
+                                      evt.preventDefault();
+                                      if (
+                                        document.selection &&
+                                        document.selection.empty
+                                      ) {
+                                        document.selection.empty();
+                                      } else if (window.getSelection) {
+                                        window.getSelection().removeAllRanges();
+                                      }
                                       navigate(
                                         `/edit/${singular(resourceParam)}/${
                                           item.id
@@ -376,41 +436,21 @@ class ResourceList extends PureComponent {
                                         checked={isSelected}
                                       />
                                     </DataTableCell>
-                                    {resource.list.fields.map(
-                                      (field, fieldIdx) => {
-                                        const schemaField = schemaFields.find(
-                                          f => f.name === field.source
-                                        );
-                                        const typeName = getType(schemaField)
-                                          .name;
-                                        const typeKind = schemaField.type.kind;
-                                        const type = field.type
-                                          ? field.type
-                                          : typeKind === 'ENUM'
-                                          ? typeKind
-                                          : typeName;
-
-                                        const isImage = field.type === 'Image';
-
+                                    {config.listFields
+                                      .filter(({ enabled }) => enabled)
+                                      .map((fieldConfig, fieldIdx) => {
                                         return (
                                           <DataTableCell
-                                            key={field.source}
+                                            key={fieldConfig.name}
                                             alignStart={fieldIdx === 0}
-                                            alignEnd={fieldIdx > 0}
-                                            style={{
-                                              padding: isImage ? 0 : null,
-                                            }}>
+                                            alignEnd={fieldIdx > 0}>
                                             {this.formatCell({
                                               item: items[idx],
-                                              field: schemaField,
-                                              type: type,
-                                              reference: field.reference,
-                                              important: fieldIdx === 0,
+                                              fieldConfig: fieldConfig,
                                             })}
                                           </DataTableCell>
                                         );
-                                      }
-                                    )}
+                                      })}
                                     <DataTableCell
                                       alignEnd
                                       style={{ width: '1%' }}>
@@ -480,7 +520,7 @@ class ResourceList extends PureComponent {
               }}
             </Query>
           )}
-        </Subscribe>
+        </Query>
         <FabActions>
           <Fab
             icon="add"

@@ -32,7 +32,8 @@ const DashboardCard = ({ resource }) => {
                     <Card outlined>
                       <div style={{ padding: '1rem' }}>
                         <Typography use="headline5" tag="div">
-                          {count} {plural(resource.type)}
+                          {count}{' '}
+                          {count > 1 ? plural(resource.type) : resource.type}
                         </Typography>
                         <Typography
                           use="body1"

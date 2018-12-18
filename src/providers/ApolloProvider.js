@@ -9,9 +9,7 @@ import { onError } from 'apollo-link-error';
 import { ApolloLink, split } from 'apollo-link';
 import apolloLogger from 'apollo-link-logger';
 
-import { remote } from '../graphs';
 import { networkStatusNotifierLink } from '../components/NetworkStatusNotifier';
-import AppLoader from '../components/screens/AppLoader';
 
 class EnhancedApolloProvider extends PureComponent {
   constructor(props) {
@@ -34,6 +32,7 @@ class EnhancedApolloProvider extends PureComponent {
       });
       return forward(operation);
     });
+
     // authenticated httplink
     const httpLinkAuth = middlewareLink.concat(httpLink);
 
@@ -87,27 +86,13 @@ class EnhancedApolloProvider extends PureComponent {
 
     this._client = client;
   }
-  state = { ready: false };
-  componentDidMount = async () => {
-    const { initGraphqlProvider } = this.props;
-    // Get schema
-    const result = await this._client.query({
-      query: remote.query.schema,
-      fetchPolicy: 'network-only',
-    });
-    // Store remote schema
-    remote.schema = result.data.__schema;
-    // Initialize GraphqlProvider, needs remote schema
-    await initGraphqlProvider();
-    // Show app
-    console.log('[App] Ready!');
-    this.setState({ ready: true });
-  };
   render() {
     const { children } = this.props;
-    const { ready } = this.state;
-    if (!ready) return <AppLoader />;
-    return <ApolloProvider client={this._client}>{children}</ApolloProvider>;
+    return (
+      <ApolloProvider client={this._client}>
+        {children(this._client)}
+      </ApolloProvider>
+    );
   }
 }
 

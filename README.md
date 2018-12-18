@@ -62,6 +62,7 @@ In `src/index.js` replace the `App` import from `./App.js` to `opencrud-admin`
 
 import React from 'react';
 import ReactDOM from 'react-dom';
+// import App from './App';
 import App from 'opencrud-admin';
 import './index.css';
 import * as serviceWorker from './serviceWorker';

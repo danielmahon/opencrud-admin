@@ -118,7 +118,7 @@ export class Editor extends Component {
     super(props);
     const { field, config = {} } = props;
     const initialEditorState = field.value
-      ? EditorState.createWithContent(convertFromRaw(JSON.parse(field.value)))
+      ? EditorState.createWithContent(convertFromRaw(field.value))
       : EditorState.createEmpty();
     this.state = {
       editorState: initialEditorState,
@@ -131,7 +131,7 @@ export class Editor extends Component {
       const { field, form } = this.props;
       form.setFieldValue(
         field.name,
-        JSON.stringify(convertToRaw(editorState.getCurrentContent()))
+        convertToRaw(editorState.getCurrentContent())
       );
     },
     250,

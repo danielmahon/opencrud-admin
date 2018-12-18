@@ -1,94 +1,306 @@
-import React, { PureComponent, Component } from 'react';
-// import { Link } from '@reach/router';
-import { Grid, GridCell } from '@rmwc/grid';
+import React, { PureComponent, Fragment } from 'react';
+import { Grid, GridInner, GridCell } from '@rmwc/grid';
 import { Helmet } from 'react-helmet';
 import { TabBar, Tab } from '@rmwc/tabs';
-import Editor from 'draft-js-plugins-editor';
-import createCodeEditorPlugin from 'draft-js-code-editor-plugin';
-import { EditorState, ContentState } from 'draft-js';
+import { Button } from '@rmwc/button';
+import { Checkbox } from '@rmwc/checkbox';
+import {
+  List,
+  ListItem,
+  ListDivider,
+  ListItemGraphic,
+  ListItemMeta,
+} from '@rmwc/list';
 import styled from 'styled-components';
-import Prism from 'prismjs';
-import createPrismPlugin from 'draft-js-prism-plugin';
+import { Query, Mutation } from 'react-apollo';
+import { Transition, animated } from 'react-spring';
+import { omit } from 'lodash';
+import { Formik, Form, Field } from 'formik';
+import {
+  SortableContainer,
+  SortableElement,
+  SortableHandle,
+  arrayMove,
+} from 'react-sortable-hoc';
+import { singular } from 'pluralize';
 
 import Text from '../ui/Text';
-import { Subscribe, SettingsState } from '../../state';
+import { remote } from '../../graphs';
+import { FormikCheckbox, FormikTextField } from '../ui/forms';
 
-const EditorWrapper = styled('div')`
-  padding: 1rem;
-  border-radius: 0.25rem;
-  border: 1px solid ${props => props.theme.rmwc.textHintOnBackground};
-`;
+const DragHandle = SortableHandle(() => (
+  <ListItemGraphic icon="drag_handle" style={{ cursor: 'grab' }} />
+));
 
-class CodeEditor extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      editorState: EditorState.createWithContent(
-        ContentState.createFromText(props.code)
-      ),
-      plugins: [
-        // Add the Prism plugin to the plugins array
-        createPrismPlugin({ prism: Prism }),
-        createCodeEditorPlugin(),
-      ],
-    };
-  }
-  onChange = editorState => {
-    this.setState({ editorState });
-  };
-  componentDidUpdate = (prevProps, prevState) => {
-    if (prevState !== this.state) {
-      const myText = this.state.editorState.getCurrentContent().getPlainText();
-      console.log(myText);
-      this.props.update(JSON.parse(myText), this.props.activeTab);
-    }
-  };
-
-  render() {
+const SortableItem = SortableElement(
+  ({ field, name, idx, items, setFieldValue }) => {
     return (
-      <EditorWrapper>
-        <Editor
-          editorState={this.state.editorState}
-          onChange={this.onChange}
-          plugins={this.state.plugins}
-        />
-      </EditorWrapper>
+      <ListItem span={12}>
+        <DragHandle />
+        {field.name}
+        <ListItemMeta>
+          <Checkbox
+            checked={field.enabled}
+            onChange={evt => {
+              const updatedFields = [...items];
+              updatedFields[idx] = {
+                ...field,
+                enabled: evt.target.checked,
+              };
+              setFieldValue(name, updatedFields);
+            }}>
+            Enabled
+          </Checkbox>
+        </ListItemMeta>
+      </ListItem>
+    );
+  }
+);
+
+const SortableList = SortableContainer(({ name, items, setFieldValue }) => {
+  return (
+    <List>
+      {items.map((field, index) => {
+        return (
+          <Fragment key={field.id}>
+            <SortableItem
+              field={field}
+              index={index}
+              idx={index}
+              items={items}
+              name={name}
+              setFieldValue={setFieldValue}
+            />
+            {index < items.length - 1 && <ListDivider />}
+          </Fragment>
+        );
+      })}
+    </List>
+  );
+});
+
+class SettingsTab extends PureComponent {
+  render() {
+    const { model: config } = this.props;
+    return (
+      <Mutation mutation={remote.mutation.updateModelConfig}>
+        {updateModelConfig => (
+          <Formik
+            initialValues={omit(config, '__typename')}
+            onSubmit={async (
+              { id, listFields, editFields, ...data },
+              { resetForm }
+            ) => {
+              console.log('submit', data);
+              await updateModelConfig({
+                variables: {
+                  where: { id },
+                  data: {
+                    ...data,
+                    listFields: {
+                      update: listFields.map(
+                        ({ id: fieldId, __typename, ...fieldData }) => ({
+                          where: { id: fieldId },
+                          data: fieldData,
+                        })
+                      ),
+                    },
+                    editFields: {
+                      update: editFields.map(
+                        ({ id: fieldId, __typename, ...fieldData }) => ({
+                          where: { id: fieldId },
+                          data: fieldData,
+                        })
+                      ),
+                    },
+                  },
+                },
+              });
+              resetForm({ id, listFields, editFields, ...data });
+            }}>
+            {({ values, isSubmitting, dirty, setFieldValue }) => {
+              return (
+                <Form style={{ overflow: 'hidden' }}>
+                  <GridInner>
+                    <GridCell span={12}>
+                      <Field
+                        component={FormikCheckbox}
+                        name="enabled"
+                        label="Model Enabled"
+                      />
+                    </GridCell>
+                    <GridCell span={12}>
+                      <Field
+                        component={FormikTextField}
+                        name="description"
+                        label="Description"
+                        style={{ width: '100%' }}
+                      />
+                    </GridCell>
+                    <GridCell span={12}>
+                      <Field
+                        component={FormikTextField}
+                        name="icon"
+                        label="Icon Name"
+                      />
+                    </GridCell>
+                    <GridCell span={12}>
+                      <ListDivider />
+                    </GridCell>
+                    <GridCell span={6}>
+                      <GridInner>
+                        <GridCell span={12}>
+                          <Text use="headline5">List Fields</Text>
+                        </GridCell>
+                        <GridCell span={12}>
+                          <SortableList
+                            lockAxis="y"
+                            name="listFields"
+                            lockToContainerEdges={true}
+                            useDragHandle={true}
+                            items={values.listFields}
+                            setFieldValue={setFieldValue}
+                            onSortEnd={({ oldIndex, newIndex }) => {
+                              const newFields = arrayMove(
+                                [...values.listFields],
+                                oldIndex,
+                                newIndex
+                              ).map((field, idx) => {
+                                field.order = idx;
+                                return field;
+                              });
+                              setFieldValue('listFields', newFields);
+                            }}
+                          />
+                        </GridCell>
+                      </GridInner>
+                    </GridCell>
+                    <GridCell span={6}>
+                      <GridInner>
+                        <GridCell span={12}>
+                          <Text use="headline5">Edit Fields</Text>
+                        </GridCell>
+                        <GridCell span={12}>
+                          <SortableList
+                            lockAxis="y"
+                            name="editFields"
+                            lockToContainerEdges={true}
+                            useDragHandle={true}
+                            items={values.editFields}
+                            setFieldValue={setFieldValue}
+                            onSortEnd={({ oldIndex, newIndex }) => {
+                              const newFields = arrayMove(
+                                [...values.editFields],
+                                oldIndex,
+                                newIndex
+                              ).map((field, idx) => {
+                                field.order = idx;
+                                return field;
+                              });
+                              setFieldValue('editFields', newFields);
+                            }}
+                          />
+                        </GridCell>
+                      </GridInner>
+                    </GridCell>
+
+                    <GridCell span={12} style={{ marginBottom: '4rem' }}>
+                      <Button
+                        unelevated
+                        type="submit"
+                        disabled={isSubmitting || !dirty}>
+                        Save
+                      </Button>
+                    </GridCell>
+                  </GridInner>
+                </Form>
+              );
+            }}
+          </Formik>
+        )}
+      </Mutation>
     );
   }
 }
 
 class Settings extends PureComponent {
-  state = { activeTab: 0 };
+  state = { activeTab: 0, previousTab: null };
+  update = state => {
+    this.setState(state);
+  };
+
   render() {
-    const { activeTab } = this.state;
+    const { activeTab, previousTab } = this.state;
+    const { modelParam } = this.props;
     return (
-      <Subscribe to={[SettingsState]}>
-        {({ state: { resources }, update }) => (
-          <Grid>
-            <Helmet title="Settings" />
-            <GridCell span={12}>
-              {/* Controlled */}
-              <Text use="headline5">Resource Settings</Text>
-              <TabBar
-                activeTabIndex={activeTab}
-                onActivate={evt =>
-                  this.setState({ activeTab: evt.detail.index })
-                }>
-                {resources.map(resource => {
-                  return <Tab key={resource.type}>{resource.type}</Tab>;
-                })}
-              </TabBar>
-            </GridCell>
-            <GridCell span={12}>
-              <CodeEditor
-                activeTab={activeTab}
-                code={JSON.stringify(resources[activeTab], null, 4)}
-                update={update}
-              />
-            </GridCell>
-          </Grid>
-        )}
-      </Subscribe>
+      <Query
+        query={remote.query.modelConfigsConnection}
+        fetchPolicy="cache-and-network">
+        {({ data, loading }) => {
+          if (loading) return null;
+          const models = data.modelConfigsConnection.edges.map(e => e.node);
+          if (!models.length) {
+            return <Text>Server error! No model configuration found.</Text>;
+          }
+          const items = models.map(model => (
+            <SettingsTab key={model.type} model={model} />
+          ));
+          const currentTab =
+            modelParam && previousTab === null
+              ? models.findIndex(model => {
+                  return model.type.toLowerCase() === singular(modelParam);
+                })
+              : activeTab;
+          return (
+            <Grid>
+              <Helmet title="Settings" />
+              <GridCell span={12}>
+                {/* Controlled */}
+                <Text use="headline5">Model Configuration</Text>
+                <Text>Discovered {models.length} Models</Text>
+                <TabBar
+                  activeTabIndex={currentTab}
+                  onActivate={evt => {
+                    window.history.pushState(
+                      { tab: models[evt.detail.index].type.toLowerCase() },
+                      document.title,
+                      `/settings/${models[evt.detail.index].type.toLowerCase()}`
+                    );
+                    this.setState({
+                      activeTab: evt.detail.index,
+                      previousTab: currentTab,
+                    });
+                  }}>
+                  {models.map(model => {
+                    return <Tab key={model.type}>{model.type}</Tab>;
+                  })}
+                </TabBar>
+              </GridCell>
+              <GridCell span={12} style={{ position: 'relative' }}>
+                <Transition
+                  native
+                  items={items[currentTab]}
+                  keys={item => item.key}
+                  from={{
+                    opacity: 0,
+                    left: previousTab <= currentTab ? -256 : 256,
+                    position: 'absolute',
+                    width: '100%',
+                  }}
+                  enter={{ opacity: 1, left: 0 }}
+                  leave={{
+                    opacity: 0,
+                    left: currentTab >= previousTab ? 256 : -256,
+                  }}>
+                  {item => props => (
+                    <animated.div style={props}>{item}</animated.div>
+                  )}
+                </Transition>
+              </GridCell>
+            </Grid>
+          );
+        }}
+      </Query>
     );
   }
 }

@@ -1,7 +1,6 @@
 // RMWC Theme Options
 const rmwc = {
   primary: 'rgba(98, 0, 238, 1.00)',
-  primaryLight: 'rgba(98, 0, 238, 0.1)',
   secondary: '#018786',
   background: '#fff',
   surface: '#fff',
@@ -25,6 +24,9 @@ const rmwc = {
   textHintOnDark: 'rgba(255,255,255,0.5)',
   textDisabledOnDark: 'rgba(255,255,255,0.5)',
   textIconOnDark: 'rgba(255,255,255,0.5)',
+  // Custom
+  primaryLight: 'rgba(98, 0, 238, 0.1)',
+  overlay: 'rgba(0,0,0,0.54)',
 };
 
 // Set responsive breakpoints

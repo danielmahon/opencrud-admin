@@ -17,7 +17,6 @@ import { Typography } from '@rmwc/typography';
 import { Button, ButtonIcon } from '@rmwc/button';
 import { Icon } from '@rmwc/icon';
 import { Query } from 'react-apollo';
-import Imgix from 'react-imgix';
 import { Helmet } from 'react-helmet';
 import { Chip, ChipSet } from '@rmwc/chip';
 import { TypeKind } from 'graphql';
@@ -42,6 +41,7 @@ import { isSubObject } from '../../providers/RemoteGraphProvider';
 import Text from '../ui/Text';
 import CardHeader from '../ui/list/CardHeader';
 import SelectedCardHeader from '../ui/list/SelectedCardHeader';
+import ListImageWidget from '../ui/widgets/ListImageWidget';
 
 const FabActions = styled('div')`
   position: fixed;
@@ -105,7 +105,6 @@ class ResourceList extends PureComponent {
     sortKey: 'createdAt',
     sortDir: 1,
     active: null,
-    dialog: { open: false, body: null },
     first: 10,
     page: 1,
     selected: [],
@@ -149,16 +148,7 @@ class ResourceList extends PureComponent {
       return <Icon icon="storage" theme="textHintOnBackground" />;
     }
     if (typeName === 'Image' || fieldConfig.widget === 'Image') {
-      return (
-        <Imgix
-          src={value}
-          width={128}
-          height={128}
-          htmlAttributes={{
-            style: { verticalAlign: 'bottom', borderRadius: '0.25rem' },
-          }}
-        />
-      );
+      return <ListImageWidget value={value} />;
     }
     if (typeName === 'Boolean') {
       return (

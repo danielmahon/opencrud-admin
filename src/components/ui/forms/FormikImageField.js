@@ -1,5 +1,6 @@
 import React, { Fragment, PureComponent } from 'react';
 import { TextField, TextFieldHelperText } from '@rmwc/textfield';
+import { Icon } from '@rmwc/icon';
 import { ErrorMessage } from 'formik';
 import Uppy from '@uppy/core';
 import AwsS3 from '@uppy/aws-s3';
@@ -7,9 +8,44 @@ import { Dashboard } from '@uppy/react';
 import { Elevation } from '@rmwc/elevation';
 import SparkMD5 from 'spark-md5';
 import ChunkedFileReader from 'chunked-file-reader';
-import { buildURL } from 'react-imgix';
+import Imgix, { buildURL } from 'react-imgix';
+import {
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogButton,
+} from '@rmwc/dialog';
+import styled from 'styled-components';
+
+const PreviewDialog = styled(Dialog)`
+  z-index: 2000;
+  .mdc-dialog__surface {
+    max-width: calc(100vw - 4rem);
+    img {
+      max-width: 100%;
+    }
+  }
+`;
+const HoverOverlay = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+  background-color: ${({ theme }) => theme.rmwc.overlay};
+  opacity: 0;
+  :hover {
+    opacity: 1;
+  }
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 200ms ease;
+`;
 
 class FormikImageField extends PureComponent {
+  state = { previewOpen: false };
   constructor(props) {
     super(props);
     this.uppy = Uppy({
@@ -82,29 +118,52 @@ class FormikImageField extends PureComponent {
       help,
       ...props
     } = this.props;
-
+    const { previewOpen } = this.state;
     return (
       <Fragment>
         {value && (
-          <Elevation
-            z={4}
-            style={{
-              display: 'inline-flex',
-              borderRadius: '.25rem',
-              overflow: 'hidden',
-              marginBottom: '1rem',
-            }}>
-            <img
-              src={buildURL(value, {
-                height: 480,
-                fit: 'max',
-              })}
-              alt="preview"
+          <Fragment>
+            <Elevation
+              z={4}
               style={{
-                maxWidth: '100%',
-              }}
-            />
-          </Elevation>
+                display: 'inline-flex',
+                borderRadius: '.25rem',
+                overflow: 'hidden',
+                marginBottom: '1rem',
+                position: 'relative',
+              }}>
+              <img
+                src={buildURL(value, {
+                  height: 480,
+                  fit: 'max',
+                })}
+                alt="preview"
+                style={{
+                  maxWidth: '100%',
+                }}
+              />
+              <HoverOverlay
+                onClick={() => this.setState({ previewOpen: true })}>
+                <Icon
+                  theme="textPrimaryOnDark"
+                  icon="zoom_in"
+                  style={{ fontSize: '3rem' }}
+                />
+              </HoverOverlay>
+            </Elevation>
+            <PreviewDialog
+              open={previewOpen}
+              onClose={() => this.setState({ previewOpen: false })}>
+              <DialogContent>
+                <Imgix src={value} sizes="90vw" />
+              </DialogContent>
+              <DialogActions>
+                <DialogButton action="close" type="button">
+                  Close
+                </DialogButton>
+              </DialogActions>
+            </PreviewDialog>
+          </Fragment>
         )}
         {value && (
           <TextField

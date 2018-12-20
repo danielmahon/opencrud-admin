@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { plural } from 'pluralize';
+import { unionBy } from 'lodash';
 
 import { getQueries, getTypeName, getTypes } from './RemoteGraphProvider';
 import { remote } from '../graphs';
@@ -34,9 +35,14 @@ class RemoteConfigProvider extends Component {
     // Check for default model configs
     const promises = validModels.map(async modelTypeName => {
       const type = getTypes().find(r => r.name === modelTypeName);
+      const inputType = getTypes().find(
+        r => r.name === `${modelTypeName}CreateInput`
+      );
       const modelConfig = modelConfigs.find(
         ({ type }) => type === modelTypeName
       );
+      const listFields = [...type.fields];
+      const editFields = unionBy(type.fields, inputType.inputFields, 'name');
       if (!modelConfig) {
         const result = await client.mutate({
           mutation: remote.mutation.createModelConfig,
@@ -48,7 +54,7 @@ class RemoteConfigProvider extends Component {
               icon: 'library_books',
               enabled: true,
               listFields: {
-                create: type.fields.map((field, index) => ({
+                create: listFields.map((field, index) => ({
                   identifier: `${modelTypeName.toLowerCase()}-list-${
                     field.name
                   }`,
@@ -60,7 +66,7 @@ class RemoteConfigProvider extends Component {
                 })),
               },
               editFields: {
-                create: type.fields.map((field, index) => ({
+                create: editFields.map((field, index) => ({
                   identifier: `${modelTypeName.toLowerCase()}-edit-${
                     field.name
                   }`,
@@ -76,8 +82,8 @@ class RemoteConfigProvider extends Component {
         });
         modelConfigs.push(result.data.createModelConfig);
       } else if (
-        modelConfig.listFields.length !== type.fields.length ||
-        modelConfig.editFields.length !== type.fields.length
+        modelConfig.listFields.length !== listFields.length ||
+        modelConfig.editFields.length !== editFields.length
       ) {
         await client.mutate({
           mutation: remote.mutation.updateModelConfig,
@@ -86,7 +92,7 @@ class RemoteConfigProvider extends Component {
             where: { id: modelConfig.id },
             data: {
               listFields: {
-                upsert: type.fields.map((field, index) => {
+                upsert: listFields.map((field, index) => {
                   const name = field.name;
                   const identifier = `${modelTypeName.toLowerCase()}-list-${name}`;
                   const description =
@@ -106,7 +112,7 @@ class RemoteConfigProvider extends Component {
                 }),
               },
               editFields: {
-                upsert: type.fields.map((field, index) => {
+                upsert: editFields.map((field, index) => {
                   const name = field.name;
                   const identifier = `${modelTypeName.toLowerCase()}-edit-${name}`;
                   const description =

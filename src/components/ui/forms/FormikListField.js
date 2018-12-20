@@ -2,6 +2,7 @@ import React, { Fragment } from 'react';
 import { TextFieldHelperText } from '@rmwc/textfield';
 import { ErrorMessage } from 'formik';
 import { Typography } from '@rmwc/typography';
+import { ListDivider } from '@rmwc/list';
 
 const FormikListField = ({
   field, // { name, value, onChange, onBlur }
@@ -12,10 +13,11 @@ const FormikListField = ({
 }) => {
   return (
     <Fragment>
+      <ListDivider />
       <Typography use="body1" tag="p">
         {label}
       </Typography>
-      <Typography use="body2">
+      <Typography use="body2" tag="p">
         {field.value.length
           ? field.value
               .map(value => {
@@ -26,6 +28,7 @@ const FormikListField = ({
       </Typography>
       {help && <TextFieldHelperText persistent>{help}</TextFieldHelperText>}
       <ErrorMessage name={field.name} component={TextFieldHelperText} />
+      <ListDivider />
     </Fragment>
   );
 };

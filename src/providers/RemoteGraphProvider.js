@@ -14,6 +14,13 @@ const isSubObject = field => {
   );
 };
 
+const isInputType = type => {
+  console.log(type);
+  // return [TypeKind.OBJECT, TypeKind.INPUT_OBJECT].includes(
+  //   getTypeKind(field.type)
+  // );
+};
+
 const getTypeName = type => {
   if (type.name === null) {
     return getTypeName(type.ofType);
@@ -117,13 +124,19 @@ const filterVariables = (name, variables) => {
       const inputField = inputType.inputFields.find(({ name }) => name === key);
       if (inputFields.includes(key)) {
         // TODO: Support connecting LISTS in the future
-        if (inputField.type.name.includes('UpdateMany')) return false;
+        if (
+          inputField.type.name &&
+          inputField.type.name.includes('UpdateMany')
+        ) {
+          return false;
+        }
         return true;
       }
     })
     .mapValues((val, key) => {
       const inputField = inputType.inputFields.find(({ name }) => name === key);
-      if (inputField && isSubObject(inputField)) {
+      if (val && inputField && isSubObject(inputField)) {
+        console.log(val, inputField);
         const id = isPlainObject(val) ? val.id : val;
         return { connect: { id } };
       }
@@ -290,7 +303,9 @@ export {
   RemoteGraphProvider,
   filterVariables,
   getTypeName,
+  getTypeKind,
   isSubObject,
+  isInputType,
   getQueries,
   getTypes,
 };

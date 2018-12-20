@@ -4,6 +4,8 @@ import { Helmet } from 'react-helmet';
 import { TabBar, Tab } from '@rmwc/tabs';
 import { Button } from '@rmwc/button';
 import { Checkbox } from '@rmwc/checkbox';
+import { Typography } from '@rmwc/typography';
+import { Select } from '@rmwc/select';
 import {
   List,
   ListItem,
@@ -11,7 +13,6 @@ import {
   ListItemGraphic,
   ListItemMeta,
 } from '@rmwc/list';
-import styled from 'styled-components';
 import { Query, Mutation } from 'react-apollo';
 import { Transition, animated } from 'react-spring';
 import { omit } from 'lodash';
@@ -32,12 +33,29 @@ const DragHandle = SortableHandle(() => (
   <ListItemGraphic icon="drag_handle" style={{ cursor: 'grab' }} />
 ));
 
+let widgets = null;
+
 const SortableItem = SortableElement(
   ({ field, name, idx, items, setFieldValue }) => {
+    if (!widgets) {
+      widgets = remote.schema.types.reduce(
+        (acc, type) => {
+          if (type.name === 'Widget') {
+            return acc.concat(type.enumValues.map(val => val.name));
+          }
+          return acc;
+        },
+        ['Default']
+      );
+    }
     return (
       <ListItem span={12}>
         <DragHandle />
-        {field.name}
+        {true ? (
+          field.name
+        ) : (
+          <Typography theme="textHintOnBackground">{field.name}</Typography>
+        )}
         <ListItemMeta>
           <Checkbox
             checked={field.enabled}
@@ -48,9 +66,24 @@ const SortableItem = SortableElement(
                 enabled: evt.target.checked,
               };
               setFieldValue(name, updatedFields);
-            }}>
-            Enabled
-          </Checkbox>
+            }}
+          />
+        </ListItemMeta>
+        <ListItemMeta style={{ marginLeft: 0 }}>
+          <Select
+            style={{ width: '8rem' }}
+            options={widgets}
+            value={field.widget || 'Default'}
+            onChange={evt => {
+              const updatedFields = [...items];
+              updatedFields[idx] = {
+                ...field,
+                widget:
+                  evt.target.value !== 'Default' ? evt.target.value : null,
+              };
+              setFieldValue(name, updatedFields);
+            }}
+          />
         </ListItemMeta>
       </ListItem>
     );
@@ -60,6 +93,13 @@ const SortableItem = SortableElement(
 const SortableList = SortableContainer(({ name, items, setFieldValue }) => {
   return (
     <List>
+      <ListItem disabled ripple={false}>
+        Field Name<ListItemMeta>Enabled?</ListItemMeta>
+        <ListItemMeta
+          style={{ marginLeft: 0, width: '8rem', textAlign: 'right' }}>
+          Widget
+        </ListItemMeta>
+      </ListItem>
       {items.map((field, index) => {
         return (
           <Fragment key={field.id}>
@@ -91,7 +131,6 @@ class SettingsTab extends PureComponent {
               { id, listFields, editFields, ...data },
               { resetForm }
             ) => {
-              console.log('submit', data);
               await updateModelConfig({
                 variables: {
                   where: { id },
@@ -158,6 +197,7 @@ class SettingsTab extends PureComponent {
                             name="listFields"
                             lockToContainerEdges={true}
                             useDragHandle={true}
+                            config={config}
                             items={values.listFields}
                             setFieldValue={setFieldValue}
                             onSortEnd={({ oldIndex, newIndex }) => {
@@ -232,6 +272,7 @@ class Settings extends PureComponent {
   render() {
     const { activeTab, previousTab } = this.state;
     const { modelParam } = this.props;
+
     return (
       <Query
         query={remote.query.modelConfigsConnection}

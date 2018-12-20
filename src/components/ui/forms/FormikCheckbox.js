@@ -8,12 +8,14 @@ const FormikCheckbox = ({
   form: { touched, errors }, // also values, setXXXX, handleXXXX, dirty, isValid, status, etc.
   help,
   ...props
-}) => (
-  <Fragment>
-    <Checkbox checked={!!value} {...field} {...props} />
-    {help && <TextFieldHelperText persistent>{help}</TextFieldHelperText>}
-    <ErrorMessage name={field.name} component={TextFieldHelperText} />
-  </Fragment>
-);
+}) => {
+  return (
+    <Fragment>
+      <Checkbox checked={!!value} {...field} {...props} />
+      {help && <TextFieldHelperText persistent>{help}</TextFieldHelperText>}
+      <ErrorMessage name={field.name} component={TextFieldHelperText} />
+    </Fragment>
+  );
+};
 
 export { FormikCheckbox };

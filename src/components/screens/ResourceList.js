@@ -16,12 +16,10 @@ import { Checkbox } from '@rmwc/checkbox';
 import { Typography } from '@rmwc/typography';
 import { Button, ButtonIcon } from '@rmwc/button';
 import { Icon } from '@rmwc/icon';
-import { IconButton } from '@rmwc/icon-button';
-import { Query, Mutation } from 'react-apollo';
+import { Query } from 'react-apollo';
 import Imgix from 'react-imgix';
 import { Helmet } from 'react-helmet';
 import { Chip, ChipSet } from '@rmwc/chip';
-import { Transition, animated } from 'react-spring';
 import { TypeKind } from 'graphql';
 import {
   truncate,
@@ -37,11 +35,13 @@ import { singular, plural } from 'pluralize';
 import styled from 'styled-components';
 import Tooltip from '@material-ui/core/Tooltip';
 import isRemoteUrl from 'is-absolute-url';
+import { Select } from 'rmwc';
 
 import { remote } from '../../graphs';
 import { isSubObject } from '../../providers/RemoteGraphProvider';
 import Text from '../ui/Text';
-import { Select } from 'rmwc';
+import CardHeader from '../ui/list/CardHeader';
+import SelectedCardHeader from '../ui/list/SelectedCardHeader';
 
 const FabActions = styled('div')`
   position: fixed;
@@ -61,23 +61,6 @@ const StyledDataTable = styled(DataTable)`
 `;
 const SmallChip = styled(Chip)`
   font-size: 0.75rem;
-`;
-const CardHeaderTitle = styled(Typography).attrs({
-  use: 'headline6',
-  tag: 'div',
-})`
-  flex: 1;
-  line-height: 3rem;
-`;
-const CardHeaderButtons = styled('div')`
-  flex: 1;
-  display: flex;
-  justify-content: flex-end;
-`;
-const CardHeader = styled('div')`
-  padding: 1rem 1.5rem;
-  display: flex;
-  justify-content: space-between;
 `;
 const Pagination = styled(CardActions)`
   justify-content: flex-end;
@@ -115,14 +98,6 @@ const PaginationIcons = styled(CardActionIcons)`
 `;
 const FabActionsSpacer = styled(GridCell)`
   height: 64px;
-`;
-const AnimatedIconButton = styled(IconButton)`
-  &&&::before {
-    top: 25%;
-    left: 25%;
-    width: 50%;
-    height: 50%;
-  }
 `;
 
 class ResourceList extends PureComponent {
@@ -173,13 +148,15 @@ class ResourceList extends PureComponent {
     if (['Json'].includes(typeName)) {
       return <Icon icon="storage" theme="textHintOnBackground" />;
     }
-    if (typeName === 'Image') {
+    if (typeName === 'Image' || fieldConfig.widget === 'Image') {
       return (
         <Imgix
           src={value}
-          width={80}
-          height={72}
-          htmlAttributes={{ style: { verticalAlign: 'bottom' } }}
+          width={128}
+          height={128}
+          htmlAttributes={{
+            style: { verticalAlign: 'bottom', borderRadius: '0.25rem' },
+          }}
         />
       );
     }
@@ -202,24 +179,6 @@ class ResourceList extends PureComponent {
         </ChipSet>
       );
     }
-    if (['String', 'ID'].includes(typeName)) {
-      if (isRemoteUrl(value)) {
-        return (
-          <Button
-            dense
-            tag="a"
-            href={value}
-            target="_blank"
-            rel="noreferrer noopener">
-            <ButtonIcon icon="launch" />
-            {truncate(value.toString(), { length: 20 })}
-          </Button>
-        );
-      }
-      return (
-        <Text use="body2">{truncate(value.toString(), { length: 20 })}</Text>
-      );
-    }
     if ([TypeKind.OBJECT].includes(type.kind)) {
       const referenceValue =
         value[reference] || value.name || value.title || value.id;
@@ -237,10 +196,27 @@ class ResourceList extends PureComponent {
         </Button>
       );
     }
+    // Return link or text by default
+    if (isRemoteUrl(value)) {
+      return (
+        <Button
+          dense
+          tag="a"
+          href={value}
+          target="_blank"
+          rel="noreferrer noopener">
+          <ButtonIcon icon="launch" />
+          {truncate(value.toString(), { length: 20 })}
+        </Button>
+      );
+    }
+    return (
+      <Text use="body2">{truncate(value.toString(), { length: 20 })}</Text>
+    );
   };
   render() {
     const { sortKey, sortDir, first, page, selected } = this.state;
-    const { resource: resourceParam } = this.props;
+    const { resourceParam } = this.props;
     // Format orderBy
     const orderBy =
       sortDir < 0 ? `${sortKey}_ASC` : sortDir > 0 ? `${sortKey}_DESC` : null;
@@ -288,73 +264,28 @@ class ResourceList extends PureComponent {
                 return (
                   <Fragment>
                     <GridCell span={12}>
-                      <Card>
-                        <CardHeader>
-                          <CardHeaderTitle>
-                            {capitalize(resourceParam)}
-                          </CardHeaderTitle>
-                          <CardHeaderButtons>
-                            <Mutation
-                              mutation={
-                                remote.mutation[
-                                  `deleteMany${capitalize(resourceParam)}`
-                                ]
-                              }
-                              onError={error => {
-                                this.setState({ selected: [] });
-                                window.alert(error);
-                              }}
-                              onCompleted={() => {
-                                this.setState({ selected: [] });
-                                refetch();
-                              }}
-                              variables={{
-                                where: { id_in: selected },
-                              }}>
-                              {handleDelete => (
-                                <Transition
-                                  native
-                                  config={{ tension: 170 * 2 }}
-                                  items={selected.length > 0}
-                                  from={{
-                                    opacity: 0,
-                                    transform: 'scale(0.5)',
-                                  }}
-                                  enter={{ opacity: 1, transform: 'scale(1)' }}
-                                  leave={{
-                                    opacity: 0,
-                                    transform: 'scale(0.5)',
-                                  }}>
-                                  {show =>
-                                    show &&
-                                    (props => (
-                                      <animated.div style={props}>
-                                        <AnimatedIconButton
-                                          type="button"
-                                          icon="delete"
-                                          onClick={handleDelete}
-                                        />
-                                      </animated.div>
-                                    ))
-                                  }
-                                </Transition>
-                              )}
-                            </Mutation>
-                            <IconButton
-                              type="button"
-                              icon="settings"
-                              onClick={() =>
-                                navigate(`/settings/${resourceParam}`)
-                              }
-                            />
-                          </CardHeaderButtons>
-                        </CardHeader>
+                      <Card
+                        style={{ position: 'relative', overflow: 'hidden' }}>
+                        <CardHeader
+                          refetch={refetch}
+                          resourceParam={resourceParam}
+                          selected={selected}
+                        />
+                        <SelectedCardHeader
+                          refetch={refetch}
+                          resourceParam={resourceParam}
+                          selected={selected}
+                        />
                         <StyledDataTable>
                           <DataTableContent>
                             <DataTableHead>
                               <DataTableRow>
                                 <DataTableHeadCell>
                                   <Checkbox
+                                    indeterminate={
+                                      selected.length > 0 &&
+                                      selected.length < end - start
+                                    }
                                     onChange={() => this.handleSelectAll(items)}
                                     checked={selected.length === end - start}
                                   />
@@ -454,16 +385,17 @@ class ResourceList extends PureComponent {
                                     <DataTableCell
                                       alignEnd
                                       style={{ width: '1%' }}>
-                                      <IconButton
-                                        icon="edit"
+                                      <Button
                                         onClick={() => {
                                           navigate(
                                             `/edit/${singular(resourceParam)}/${
                                               item.id
                                             }`
                                           );
-                                        }}
-                                      />
+                                        }}>
+                                        <ButtonIcon icon="edit" />
+                                        Edit
+                                      </Button>
                                     </DataTableCell>
                                   </DataTableRow>
                                 );

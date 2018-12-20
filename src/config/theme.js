@@ -1,6 +1,7 @@
 // RMWC Theme Options
 const rmwc = {
-  primary: '#6200ee',
+  primary: 'rgba(98, 0, 238, 1.00)',
+  primaryLight: 'rgba(98, 0, 238, 0.1)',
   secondary: '#018786',
   background: '#fff',
   surface: '#fff',

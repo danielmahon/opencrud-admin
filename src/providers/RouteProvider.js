@@ -88,8 +88,8 @@ const PrivateRoutes = ({ client }) => {
                 <Dashboard path="/" />
                 <Settings path="/settings" />
                 <Settings path="/settings/:modelParam" />
-                <ResourceList path="/list/:resource" />
-                <ResourceEdit path="/edit/:resource/:id" />
+                <ResourceList path="/list/:resourceParam" />
+                <ResourceEdit path="/edit/:resourceParam/:idParam" />
                 <Logout path="/logout" />
                 <NotFound default />
               </FadeRouter>

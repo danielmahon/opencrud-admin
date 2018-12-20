@@ -1,5 +1,7 @@
 body {
   color: var(--mdc-theme-text-primary-on-background, rgba(0, 0, 0, 0.87));
+  /* Disable horizontal scroll */
+  overflow-x: hidden;
 }
 
 code {

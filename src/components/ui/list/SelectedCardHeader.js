@@ -35,7 +35,7 @@ export default class SelectedCardHeader extends PureComponent {
   };
 
   render() {
-    const { selected, refetch, resourceParam } = this.props;
+    const { selected, refetch, resourceParam, resetSelection } = this.props;
     return (
       <Transition
         native
@@ -59,6 +59,7 @@ export default class SelectedCardHeader extends PureComponent {
                   <ListDeleteButton
                     refetch={refetch}
                     selected={selected}
+                    resetSelection={resetSelection}
                     resourceParam={resourceParam}
                   />
                 </CardHeaderButtons>

@@ -91,22 +91,20 @@ export default class ListImageWidget extends PureComponent {
           open={previewOpen}
           onClose={() => this.setState({ previewOpen: false })}>
           <DialogContent>
-            {previewOpen && (
-              <LazyLoadImgix
-                className="lazyload"
-                src={value}
-                sizes="90vw"
-                htmlAttributes={{
-                  style: { width: '90vw' },
-                  src: lqip,
-                }}
-                attributeConfig={{
-                  src: 'data-src',
-                  srcSet: 'data-srcset',
-                  sizes: 'data-sizes',
-                }}
-              />
-            )}
+            <LazyLoadImgix
+              className="lazyload"
+              src={value}
+              sizes="90vw"
+              htmlAttributes={{
+                style: { width: '90vw' },
+                src: lqip,
+              }}
+              attributeConfig={{
+                src: 'data-src',
+                srcSet: 'data-srcset',
+                sizes: 'data-sizes',
+              }}
+            />
           </DialogContent>
           <DialogActions>
             <DialogButton action="close" type="button">

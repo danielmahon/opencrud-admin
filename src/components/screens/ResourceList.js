@@ -204,6 +204,9 @@ class ResourceList extends PureComponent {
       <Text use="body2">{truncate(value.toString(), { length: 20 })}</Text>
     );
   };
+  resetSelection = () => {
+    this.setState({ selected: [] });
+  };
   render() {
     const { sortKey, sortDir, first, page, selected } = this.state;
     const { resourceParam } = this.props;
@@ -265,6 +268,7 @@ class ResourceList extends PureComponent {
                           refetch={refetch}
                           resourceParam={resourceParam}
                           selected={selected}
+                          resetSelection={this.resetSelection}
                         />
                         <StyledDataTable>
                           <DataTableContent>

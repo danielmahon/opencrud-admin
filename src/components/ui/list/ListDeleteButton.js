@@ -18,16 +18,16 @@ export default class ListDeleteButton extends Component {
     selected: PropTypes.array,
   };
   render() {
-    const { resourceParam, refetch, selected } = this.props;
+    const { resourceParam, refetch, selected, resetSelection } = this.props;
     return (
       <Mutation
         mutation={remote.mutation[`deleteMany${capitalize(resourceParam)}`]}
         onError={error => {
-          this.setState({ selected: [] });
+          resetSelection();
           window.alert(error);
         }}
         onCompleted={() => {
-          this.setState({ selected: [] });
+          resetSelection();
           refetch();
         }}
         variables={{

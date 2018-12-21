@@ -44,6 +44,17 @@ const HoverOverlay = styled('div')`
   transition: opacity 200ms ease;
 `;
 
+const LazyLoadImgix = styled(Imgix)`
+  flex: 1;
+  &.blur-up {
+    transition: filter 300ms;
+    filter: blur(4px);
+    &.lazyloaded {
+      filter: blur(0px);
+    }
+  }
+`;
+
 class FormikImageField extends PureComponent {
   state = { previewOpen: false };
   constructor(props) {
@@ -119,6 +130,7 @@ class FormikImageField extends PureComponent {
       ...props
     } = this.props;
     const { previewOpen } = this.state;
+    const lqip = buildURL(value, { w: 16, h: 16, auto: 'format' });
     return (
       <Fragment>
         {value && (
@@ -132,14 +144,17 @@ class FormikImageField extends PureComponent {
                 marginBottom: '1rem',
                 position: 'relative',
               }}>
-              <img
-                src={buildURL(value, {
-                  height: 480,
-                  fit: 'max',
-                })}
+              <LazyLoadImgix
+                className="lazyload blur-up"
+                src={value}
                 alt="preview"
-                style={{
-                  maxWidth: '100%',
+                height={480}
+                imgixParams={{ fit: 'max' }}
+                htmlAttributes={{ src: lqip }}
+                attributeConfig={{
+                  src: 'data-src',
+                  srcSet: 'data-srcset',
+                  sizes: 'data-sizes',
                 }}
               />
               <HoverOverlay
@@ -155,7 +170,20 @@ class FormikImageField extends PureComponent {
               open={previewOpen}
               onClose={() => this.setState({ previewOpen: false })}>
               <DialogContent>
-                <Imgix src={value} sizes="90vw" />
+                <LazyLoadImgix
+                  className="lazyload"
+                  src={value}
+                  sizes="90vw"
+                  htmlAttributes={{
+                    style: { width: '90vw' },
+                    src: lqip,
+                  }}
+                  attributeConfig={{
+                    src: 'data-src',
+                    srcSet: 'data-srcset',
+                    sizes: 'data-sizes',
+                  }}
+                />
               </DialogContent>
               <DialogActions>
                 <DialogButton action="close" type="button">

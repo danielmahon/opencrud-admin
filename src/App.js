@@ -17,7 +17,12 @@ import 'draft-js-image-plugin/lib/plugin.css';
 import 'draft-js-focus-plugin/lib/plugin.css';
 import 'draft-js-alignment-plugin/lib/plugin.css';
 import 'prismjs/themes/prism.css';
+import 'react-placeholder/lib/reactPlaceholder.css';
 import './global.css';
+
+// Lazyload Images
+import 'lazysizes';
+import 'lazysizes/plugins/attrchange/ls.attrchange';
 
 // Relative Imports
 import ApolloProvider from './providers/ApolloProvider';

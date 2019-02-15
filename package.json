@@ -112,8 +112,5 @@
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/danielmahon/opencrud-admin/issues"
-  },
-  "engines": {
-    "node": "10.x"
   }
 }

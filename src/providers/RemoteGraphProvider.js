@@ -14,13 +14,6 @@ const isSubObject = field => {
   );
 };
 
-const isInputType = type => {
-  console.log(type);
-  // return [TypeKind.OBJECT, TypeKind.INPUT_OBJECT].includes(
-  //   getTypeKind(field.type)
-  // );
-};
-
 const getTypeName = type => {
   if (type.name === null) {
     return getTypeName(type.ofType);
@@ -121,22 +114,24 @@ const filterVariables = (name, variables) => {
 
   const validData = chain(variables)
     .pickBy((val, key) => {
-      const inputField = inputType.inputFields.find(({ name }) => name === key);
       if (inputFields.includes(key)) {
-        // TODO: Support connecting LISTS in the future
-        if (
-          inputField.type.name &&
-          inputField.type.name.includes('UpdateMany')
-        ) {
-          return false;
-        }
         return true;
       }
     })
     .mapValues((val, key) => {
       const inputField = inputType.inputFields.find(({ name }) => name === key);
+      // TODO: Support connecting any unique key
+      if (
+        val &&
+        inputField &&
+        inputField.type.name &&
+        inputField.type.name.includes('UpdateMany')
+      ) {
+        const values = val.map(option => ({ id: option.id }));
+        return { set: values };
+      }
+      // TODO: Support connecting any unique key
       if (val && inputField && isSubObject(inputField)) {
-        console.log(val, inputField);
         const id = isPlainObject(val) ? val.id : val;
         return { connect: { id } };
       }
@@ -172,7 +167,7 @@ export default class RemoteGraphProvider extends PureComponent {
   state = { ready: false };
   componentDidMount = async () => {
     const { client } = this.props;
-    console.log(remote);
+    // console.log(remote);
 
     // Get schema
     const schemaResult = await client.query({
@@ -305,7 +300,6 @@ export {
   getTypeName,
   getTypeKind,
   isSubObject,
-  isInputType,
   getQueries,
   getTypes,
 };

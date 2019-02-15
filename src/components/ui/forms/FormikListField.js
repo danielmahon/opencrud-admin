@@ -18,7 +18,7 @@ const FormikListField = ({
         {label}
       </Typography>
       <Typography use="body2" tag="p">
-        {field.value.length
+        {field.value && field.value.length
           ? field.value
               .map(value => {
                 return value.title;

@@ -16,14 +16,41 @@ import {
   DialogButton,
 } from '@rmwc/dialog';
 import styled from 'styled-components';
+import path from 'path';
+
+const SUPPORTED_IMGIX_FORMATS = [
+  'ai',
+  'bmp',
+  'gif',
+  'heic',
+  'ico',
+  'icns',
+  'jpg',
+  'jpeg',
+  'jpeg2000',
+  'pct',
+  'pdf',
+  'pjpeg',
+  'png',
+  'psd',
+  'tiff',
+  'tif',
+];
 
 const PreviewDialog = styled(Dialog)`
   z-index: 2000;
+  .mdc-dialog__content {
+    padding: 0;
+  }
   .mdc-dialog__surface {
+    overflow: hidden;
     max-width: calc(100vw - 4rem);
     img {
       max-width: 100%;
     }
+  }
+  .mdc-dialog__scrim {
+    background-color: ${({ theme }) => theme.rmwc.overlay};
   }
 `;
 const HoverOverlay = styled('div')`
@@ -71,7 +98,7 @@ class FormikImageField extends PureComponent {
         const checksum = await this.getFileMD5(file.data);
         // Send a request to our signing endpoint.
         const response = await fetch(
-          process.env.REACT_APP_GRAPHQL_ENDPOINT + '/getSignedUrl',
+          process.env.REACT_APP_GRAPHQL_ENDPOINT + '/getSignedPutUrl',
           {
             method: 'post',
             // Send and receive JSON.
@@ -130,7 +157,26 @@ class FormikImageField extends PureComponent {
       ...props
     } = this.props;
     const { previewOpen } = this.state;
-    const lqip = buildURL(value, { w: 16, h: 16, auto: 'format' });
+    const isSupported = SUPPORTED_IMGIX_FORMATS.includes(
+      path.extname(value).substring(1)
+    );
+    const image = isSupported
+      ? value
+      : buildURL(`${process.env.REACT_APP_IMGIX_ENDPOINT}/placeholder.png`, {
+          w: '100%',
+          txt: path
+            .extname(value)
+            .substring(1)
+            .toUpperCase(),
+          txtsize: 48,
+          txtpad: 164,
+          txtcolor: '#767676',
+          txtalign: 'right,middle',
+          txtfont: 'Futura COndensed Medium',
+        });
+    const lqip = isSupported
+      ? buildURL(value, { w: 16, h: 16, auto: 'format' })
+      : image;
     return (
       <Fragment>
         {value && (
@@ -146,7 +192,7 @@ class FormikImageField extends PureComponent {
               }}>
               <LazyLoadImgix
                 className="lazyload blur-up"
-                src={value}
+                src={image}
                 alt="preview"
                 height={480}
                 imgixParams={{ fit: 'max' }}
@@ -157,14 +203,16 @@ class FormikImageField extends PureComponent {
                   sizes: 'data-sizes',
                 }}
               />
-              <HoverOverlay
-                onClick={() => this.setState({ previewOpen: true })}>
-                <Icon
-                  theme="textPrimaryOnDark"
-                  icon="zoom_in"
-                  style={{ fontSize: '3rem' }}
-                />
-              </HoverOverlay>
+              {isSupported && (
+                <HoverOverlay
+                  onClick={() => this.setState({ previewOpen: true })}>
+                  <Icon
+                    theme="textPrimaryOnDark"
+                    icon="zoom_in"
+                    style={{ fontSize: '3rem' }}
+                  />
+                </HoverOverlay>
+              )}
             </Elevation>
             <PreviewDialog
               open={previewOpen}
@@ -172,7 +220,7 @@ class FormikImageField extends PureComponent {
               <DialogContent>
                 <LazyLoadImgix
                   className="lazyload"
-                  src={value}
+                  src={image}
                   sizes="90vw"
                   htmlAttributes={{
                     style: { width: '90vw' },
@@ -215,7 +263,12 @@ class FormikImageField extends PureComponent {
           />
         )}
         {help && <TextFieldHelperText persistent>{help}</TextFieldHelperText>}
-        <ErrorMessage name={field.name} component={TextFieldHelperText} />
+        <ErrorMessage
+          name={field.name}
+          component={TextFieldHelperText}
+          persistent
+          validationMsg
+        />
       </Fragment>
     );
   }

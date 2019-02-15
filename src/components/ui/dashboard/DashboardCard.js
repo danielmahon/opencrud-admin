@@ -38,7 +38,7 @@ const DashboardCard = ({ resource }) => {
                         <Typography
                           use="body1"
                           tag="p"
-                          theme="text-secondary-on-background">
+                          theme="textSecondaryOnBackground">
                           {resource.description}
                         </Typography>
                       </div>

@@ -31,6 +31,7 @@ import {
   isSubObject,
 } from '../../providers/RemoteGraphProvider';
 import { Editor } from '../ui/Editor';
+import { FormikRefMultiSelect } from '../ui/forms/FormikRefMultiSelect';
 
 const FabActions = styled('div')`
   position: fixed;
@@ -351,6 +352,25 @@ class ResourceEdit extends PureComponent {
                                       </GridCell>
                                     );
                                   }
+                                  if (
+                                    (schemaField.type.kind === 'LIST' ||
+                                      (schemaField.type.ofType &&
+                                        schemaField.type.ofType.kind ===
+                                          'LIST')) &&
+                                    isSubObject(schemaField)
+                                  ) {
+                                    return (
+                                      <GridCell span={12} key={fieldName}>
+                                        <Field
+                                          component={FormikRefMultiSelect}
+                                          name={fieldName}
+                                          item={item}
+                                          schemaField={schemaField}
+                                          label={startCase(fieldName)}
+                                        />
+                                      </GridCell>
+                                    );
+                                  }
                                   if (schemaField.type.kind === 'LIST') {
                                     return (
                                       <GridCell span={12} key={fieldName}>
@@ -389,6 +409,7 @@ class ResourceEdit extends PureComponent {
                                       </GridCell>
                                     );
                                   }
+
                                   if (typeName === 'Boolean') {
                                     return (
                                       <GridCell span={12} key={fieldName}>

@@ -9,6 +9,7 @@ import {
 } from '@rmwc/dialog';
 import { Icon } from '@rmwc/icon';
 import Imgix, { buildURL } from 'react-imgix';
+import path from 'path';
 
 const PreviewDialog = styled(Dialog)`
   z-index: 2000;
@@ -57,6 +58,25 @@ const HoverOverlay = styled('div')`
   transition: opacity 200ms ease;
 `;
 
+const SUPPORTED_IMGIX_FORMATS = [
+  'ai',
+  'bmp',
+  'gif',
+  'heic',
+  'ico',
+  'icns',
+  'jpg',
+  'jpeg',
+  'jpeg2000',
+  'pct',
+  'pdf',
+  'pjpeg',
+  'png',
+  'psd',
+  'tiff',
+  'tif',
+];
+
 export default class ListImageWidget extends PureComponent {
   static propTypes = {
     value: PropTypes.string,
@@ -65,35 +85,54 @@ export default class ListImageWidget extends PureComponent {
   render() {
     const { previewOpen } = this.state;
     const { value } = this.props;
+    const isSupported = SUPPORTED_IMGIX_FORMATS.includes(
+      path.extname(value).substring(1)
+    );
+    const image = isSupported
+      ? value
+      : buildURL(`${process.env.REACT_APP_IMGIX_ENDPOINT}/placeholder.png`, {
+          w: 360,
+          txt: path
+            .extname(value)
+            .substring(1)
+            .toUpperCase(),
+          txtsize: 24,
+          txtpad: 20,
+          txtcolor: '#767676',
+          txtalign: 'right,middle',
+          txtfont: 'Futura COndensed Medium',
+        });
     const lqip = buildURL(value, { w: 16, h: 16, auto: 'format' });
     return (
       <ImgWrapper>
         <LazyLoadImgix
           className="lazyload blur-up"
-          src={value}
+          src={image}
           width={128}
           height={128}
-          htmlAttributes={{ src: lqip }}
+          htmlAttributes={{ src: isSupported ? lqip : image }}
           attributeConfig={{
             src: 'data-src',
             srcSet: 'data-srcset',
             sizes: 'data-sizes',
           }}
         />
-        <HoverOverlay onClick={() => this.setState({ previewOpen: true })}>
-          <Icon
-            theme="textPrimaryOnDark"
-            icon="zoom_in"
-            style={{ fontSize: '3rem' }}
-          />
-        </HoverOverlay>
+        {isSupported && (
+          <HoverOverlay onClick={() => this.setState({ previewOpen: true })}>
+            <Icon
+              theme="textPrimaryOnDark"
+              icon="zoom_in"
+              style={{ fontSize: '3rem' }}
+            />
+          </HoverOverlay>
+        )}
         <PreviewDialog
           open={previewOpen}
           onClose={() => this.setState({ previewOpen: false })}>
           <DialogContent>
             <LazyLoadImgix
               className="lazyload"
-              src={value}
+              src={image}
               sizes="90vw"
               htmlAttributes={{
                 style: { width: '90vw' },

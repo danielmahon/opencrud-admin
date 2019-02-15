@@ -58,6 +58,9 @@ const FormikReferenceField = ({
             outlined
             value={field.value.id}
             onChange={evt => {
+              console.log(
+                items.find(({ value }) => value === evt.target.value).data
+              );
               setFieldValue(
                 field.name,
                 items.find(({ value }) => value === evt.target.value).data

@@ -17,6 +17,7 @@ import {
 } from '@rmwc/dialog';
 import styled from 'styled-components';
 import path from 'path';
+import { isEmpty } from 'lodash';
 
 const SUPPORTED_IMGIX_FORMATS = [
   'ai',
@@ -36,6 +37,13 @@ const SUPPORTED_IMGIX_FORMATS = [
   'tiff',
   'tif',
 ];
+
+const DashboardWrapper = styled('div')`
+  .uppy-Informer p {
+    background-color: red;
+    font-weight: 600 !important;
+  }
+`;
 
 const PreviewDialog = styled(Dialog)`
   z-index: 2000;
@@ -124,12 +132,15 @@ class FormikImageField extends PureComponent {
     this.uppy.on('complete', result => {
       if (result.failed.length || !result.successful.length) return;
       const meta = result.successful[0].meta;
-      props.form.setValues({
-        src: `${process.env.REACT_APP_IMGIX_ENDPOINT}/${meta.key}`,
+      this.props.form.setValues({
+        ...this.props.form.values,
+        [this.props.field.name]: `${process.env.REACT_APP_IMGIX_ENDPOINT}/${
+          meta.key
+        }`,
         filename: meta.filename,
         checksum: meta.checksum,
       });
-      props.form.submitForm();
+      this.props.form.submitForm();
     });
   }
   getFileMD5 = file => {
@@ -145,6 +156,28 @@ class FormikImageField extends PureComponent {
       });
       reader.readChunks(file);
     });
+  };
+  componentDidUpdate = async () => {
+    const { form, field } = this.props;
+    const files = this.uppy.getFiles();
+    if (
+      form.isSubmitting &&
+      !form.isValidating &&
+      !form.isValid &&
+      files.length
+    ) {
+      const invalidFields = await form.validateForm({
+        ...form.values,
+        [this.props.field.name]: files[0].name,
+        filename: files[0].name,
+        checksum: files[0].id,
+      });
+      if (isEmpty(invalidFields)) {
+        this.uppy.upload();
+      }
+    } else if (form.isValidating && form.errors[field.name] && !files.length) {
+      this.uppy.info(form.errors[field.name], 'error', 5000);
+    }
   };
   componentWillUnmount = () => {
     this.uppy.close();
@@ -251,24 +284,27 @@ class FormikImageField extends PureComponent {
           />
         )}
         {this.uppy && !value && (
-          <Dashboard
-            {...field}
-            {...props}
-            uppy={this.uppy}
-            plugins={['AwsS3', 'GoogleDrive']}
-            width={1920}
-            height={400}
-            // note="Images and video only, 2–3 files, up to 1 MB"
-            proudlyDisplayPoweredByUppy={false}
-          />
+          <DashboardWrapper>
+            <Dashboard
+              {...field}
+              {...props}
+              uppy={this.uppy}
+              plugins={['AwsS3', 'GoogleDrive']}
+              width={1920}
+              height={400}
+              hideUploadButton={true}
+              // note="Images and video only, 2–3 files, up to 1 MB"
+              proudlyDisplayPoweredByUppy={false}
+            />
+          </DashboardWrapper>
         )}
         {help && <TextFieldHelperText persistent>{help}</TextFieldHelperText>}
-        <ErrorMessage
+        {/* <ErrorMessage
           name={field.name}
           component={TextFieldHelperText}
           persistent
           validationMsg
-        />
+        /> */}
       </Fragment>
     );
   }

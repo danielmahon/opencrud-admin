@@ -13,6 +13,9 @@ const isSubObject = field => {
     getTypeKind(field.type)
   );
 };
+const isListObject = field => {
+  return isSubObject(field) && getTypeName(field.type).includes('Many');
+};
 
 const getTypeName = type => {
   if (type.name === null) {
@@ -121,14 +124,14 @@ const filterVariables = (name, variables) => {
     .mapValues((val, key) => {
       const inputField = inputType.inputFields.find(({ name }) => name === key);
       // TODO: Support connecting any unique key
-      if (
-        val &&
-        inputField &&
-        inputField.type.name &&
-        inputField.type.name.includes('UpdateMany')
-      ) {
+      if (val && inputField && isListObject(inputField)) {
         const values = val.map(option => ({ id: option.id }));
-        return { set: values };
+        if (inputField.type.name.includes('UpdateMany')) {
+          return { set: values };
+        }
+        if (inputField.type.name.includes('CreateMany')) {
+          return { connect: values };
+        }
       }
       // TODO: Support connecting any unique key
       if (val && inputField && isSubObject(inputField)) {
@@ -138,7 +141,6 @@ const filterVariables = (name, variables) => {
       return val;
     })
     .value();
-
   return validData;
 };
 
@@ -300,6 +302,7 @@ export {
   getTypeName,
   getTypeKind,
   isSubObject,
+  isListObject,
   getQueries,
   getTypes,
 };

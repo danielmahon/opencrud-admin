@@ -14,10 +14,11 @@ const FormikRefMultiSelect = ({
   form: { setFieldValue },
   help,
   label,
+  fieldConfig,
   schemaField,
   ...props
 }) => {
-  const referenceType = plural(getTypeName(schemaField.type).toLowerCase());
+  const referenceType = plural(fieldConfig.type.toLowerCase());
   const name = `${referenceType}Connection`;
   return (
     <Query query={remote.query[name]} fetchPolicy="cache-and-network">

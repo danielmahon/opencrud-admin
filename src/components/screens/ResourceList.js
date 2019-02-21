@@ -135,7 +135,7 @@ class ResourceList extends PureComponent {
     });
   };
   formatCell = ({ item, fieldConfig, reference }) => {
-    const value = item[fieldConfig.name];
+    let value = item[fieldConfig.name];
     const typeName = fieldConfig.type;
     const type = remote.schema.types.find(({ name }) => name === typeName);
     if (value === undefined) {
@@ -144,11 +144,28 @@ class ResourceList extends PureComponent {
     if (value === null) {
       return <Typography theme="textHintOnBackground">none</Typography>;
     }
+    if (fieldConfig.widget === 'Image') {
+      return <ListImageWidget value={value} />;
+    }
+    if ([TypeKind.OBJECT].includes(type.kind)) {
+      const referenceValue =
+        value[reference] || value.name || value.title || value.id;
+      return (
+        <Button
+          dense
+          tag={Link}
+          to={
+            referenceValue
+              ? `/edit/${camelCase(typeName)}/${value.id}`
+              : `/list/${camelCase(plural(typeName))}`
+          }>
+          <ButtonIcon icon="link" />
+          {truncate(referenceValue || plural(typeName), { length: 20 })}
+        </Button>
+      );
+    }
     if (['Json'].includes(typeName)) {
       return <Icon icon="storage" theme="textHintOnBackground" />;
-    }
-    if (typeName === 'Image' || fieldConfig.widget === 'Image') {
-      return <ListImageWidget value={value} />;
     }
     if (typeName === 'Boolean') {
       return (
@@ -167,23 +184,6 @@ class ResourceList extends PureComponent {
         <ChipSet>
           <SmallChip text={value} />
         </ChipSet>
-      );
-    }
-    if ([TypeKind.OBJECT].includes(type.kind)) {
-      const referenceValue =
-        value[reference] || value.name || value.title || value.id;
-      return (
-        <Button
-          dense
-          tag={Link}
-          to={
-            referenceValue
-              ? `/edit/${camelCase(typeName)}/${value.id}`
-              : `/list/${camelCase(plural(typeName))}`
-          }>
-          <ButtonIcon icon="link" />
-          {truncate(referenceValue || plural(typeName), { length: 20 })}
-        </Button>
       );
     }
     // Return link or text by default

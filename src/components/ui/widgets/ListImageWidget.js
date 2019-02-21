@@ -10,6 +10,7 @@ import {
 import { Icon } from '@rmwc/icon';
 import Imgix, { buildURL } from 'react-imgix';
 import path from 'path';
+import { isPlainObject } from 'lodash';
 
 const PreviewDialog = styled(Dialog)`
   z-index: 2000;
@@ -78,13 +79,13 @@ const SUPPORTED_IMGIX_FORMATS = [
 ];
 
 export default class ListImageWidget extends PureComponent {
-  static propTypes = {
-    value: PropTypes.string,
-  };
   state = { previewOpen: false };
   render() {
     const { previewOpen } = this.state;
-    const { value } = this.props;
+    let { value } = this.props;
+    if (isPlainObject(value)) {
+      value = value.src;
+    }
     const isSupported = SUPPORTED_IMGIX_FORMATS.includes(
       path.extname(value).substring(1)
     );

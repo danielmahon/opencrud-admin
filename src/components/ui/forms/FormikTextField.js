@@ -11,12 +11,12 @@ const FormikTextField = ({
   return (
     <Fragment>
       <TextField
+        {...field}
+        {...props}
         outlined
         invalid={form.errors[field.name]}
         type="text"
         value={value || ''}
-        {...field}
-        {...props}
       />
       {help && <TextFieldHelperText persistent>{help}</TextFieldHelperText>}
       <ErrorMessage

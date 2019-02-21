@@ -6,7 +6,7 @@ import { TabBar, Tab } from '@rmwc/tabs';
 import { IconButton } from '@rmwc/icon-button';
 import { Query, Mutation } from 'react-apollo';
 import { capitalize, has, startCase, get, unionBy, reject } from 'lodash';
-import { plural } from 'pluralize';
+import { plural, singular } from 'pluralize';
 import { CircularProgress } from '@rmwc/circular-progress';
 import styled from 'styled-components';
 import { Fab } from '@rmwc/fab';
@@ -29,6 +29,7 @@ import {
   getTypeName,
   getTypeKind,
   isSubObject,
+  isListObject,
 } from '../../providers/RemoteGraphProvider';
 import { Editor } from '../ui/Editor';
 import { FormikRefMultiSelect } from '../ui/forms/FormikRefMultiSelect';
@@ -112,7 +113,8 @@ class ResourceEdit extends PureComponent {
                 : updateInputFields;
 
               const allSchemaFields = unionBy(
-                reject(schemaInputFields, isSubObject),
+                // reject(schemaInputFields, isListObject),
+                schemaInputFields,
                 schemaFields,
                 'name'
               );
@@ -352,19 +354,14 @@ class ResourceEdit extends PureComponent {
                                       </GridCell>
                                     );
                                   }
-                                  if (
-                                    (schemaField.type.kind === 'LIST' ||
-                                      (schemaField.type.ofType &&
-                                        schemaField.type.ofType.kind ===
-                                          'LIST')) &&
-                                    isSubObject(schemaField)
-                                  ) {
+                                  if (isListObject(schemaField)) {
                                     return (
                                       <GridCell span={12} key={fieldName}>
                                         <Field
                                           component={FormikRefMultiSelect}
                                           name={fieldName}
                                           item={item}
+                                          fieldConfig={fieldConfig}
                                           schemaField={schemaField}
                                           label={startCase(fieldName)}
                                         />
@@ -388,9 +385,7 @@ class ResourceEdit extends PureComponent {
                                       item,
                                       fieldName
                                     );
-                                    const referenceType = getTypeName(
-                                      schemaField.type
-                                    ).toLowerCase();
+                                    const referenceType = fieldConfig.type.toLowerCase();
                                     const referencePath = isNew
                                       ? null
                                       : `/edit/${referenceType}/${
@@ -402,7 +397,7 @@ class ResourceEdit extends PureComponent {
                                           component={FormikReferenceField}
                                           name={fieldName}
                                           label={startCase(fieldName)}
-                                          referenceType={plural(referenceType)}
+                                          referenceType={referenceType}
                                           referenceLabel={fieldConfig.reference}
                                           referencePath={referencePath}
                                         />

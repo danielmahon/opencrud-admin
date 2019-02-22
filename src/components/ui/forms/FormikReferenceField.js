@@ -20,7 +20,10 @@ const FormikReferenceField = ({
   ...props
 }) => {
   return (
-    <Query query={remote.query[`${plural(referenceType)}Connection`]}>
+    <Query
+      query={remote.query[`${plural(referenceType)}Connection`]}
+      fetchPolicy="cache-and-network"
+      variables={{ orderBy: 'createdAt_DESC' }}>
       {({ loading, data }) => {
         if (loading) {
           return (
@@ -61,9 +64,6 @@ const FormikReferenceField = ({
               outlined
               value={field.value ? field.value.id : ''}
               onChange={evt => {
-                console.log(
-                  items.find(({ value }) => value === evt.target.value).data
-                );
                 setFieldValue(
                   field.name,
                   items.find(({ value }) => value === evt.target.value).data

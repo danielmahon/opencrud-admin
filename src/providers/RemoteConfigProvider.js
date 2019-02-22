@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { plural } from 'pluralize';
-import { unionBy } from 'lodash';
+import { unionBy, difference } from 'lodash';
 
 import { getQueries, getTypeName, getTypes } from './RemoteGraphProvider';
 import { remote } from '../graphs';
@@ -81,59 +81,96 @@ class RemoteConfigProvider extends Component {
           },
         });
         modelConfigs.push(result.data.createModelConfig);
-      } else if (
-        modelConfig.listFields.length !== listFields.length ||
-        modelConfig.editFields.length !== editFields.length
-      ) {
-        await client.mutate({
-          mutation: remote.mutation.updateModelConfig,
-          refetchQueries: [{ query: remote.query.modelConfigsConnection }],
-          variables: {
-            where: { id: modelConfig.id },
-            data: {
-              listFields: {
-                upsert: listFields.map((field, index) => {
-                  const name = field.name;
-                  const identifier = `${modelTypeName.toLowerCase()}-list-${name}`;
-                  const description =
-                    field.description !== '' ? field.description : undefined;
-                  const type = getTypeName(field.type);
-                  return {
-                    where: { identifier },
-                    create: {
-                      order: index,
-                      identifier,
-                      name,
-                      description,
-                      type,
-                    },
-                    update: {},
-                  };
-                }),
-              },
-              editFields: {
-                upsert: editFields.map((field, index) => {
-                  const name = field.name;
-                  const identifier = `${modelTypeName.toLowerCase()}-edit-${name}`;
-                  const description =
-                    field.description !== '' ? field.description : undefined;
-                  const type = getTypeName(field.type);
-                  return {
-                    where: { identifier },
-                    create: {
-                      order: index,
-                      identifier,
-                      name,
-                      description,
-                      type,
-                    },
-                    update: {},
-                  };
-                }),
+      } else {
+        const listFieldsToRemove = difference(
+          modelConfig.listFields.map(f => f.name),
+          listFields.map(f => f.name)
+        );
+        const editFieldsToRemove = difference(
+          modelConfig.editFields.map(f => f.name),
+          editFields.map(f => f.name)
+        );
+
+        if (listFieldsToRemove.length || editFieldsToRemove.length) {
+          await client.mutate({
+            mutation: remote.mutation.updateModelConfig,
+            refetchQueries: [{ query: remote.query.modelConfigsConnection }],
+            variables: {
+              where: { id: modelConfig.id },
+              data: {
+                listFields: {
+                  delete: listFieldsToRemove.map(name => {
+                    const field = modelConfig.listFields.find(
+                      f => f.name === name
+                    );
+                    return { id: field.id };
+                  }),
+                },
+                editFields: {
+                  delete: editFieldsToRemove.map(name => {
+                    const field = modelConfig.editFields.find(
+                      f => f.name === name
+                    );
+                    return { id: field.id };
+                  }),
+                },
               },
             },
-          },
-        });
+          });
+        } else if (
+          modelConfig.listFields.length !== listFields.length ||
+          modelConfig.editFields.length !== editFields.length
+        ) {
+          await client.mutate({
+            mutation: remote.mutation.updateModelConfig,
+            refetchQueries: [{ query: remote.query.modelConfigsConnection }],
+            variables: {
+              where: { id: modelConfig.id },
+              data: {
+                listFields: {
+                  upsert: listFields.map((field, index) => {
+                    const name = field.name;
+                    const identifier = `${modelTypeName.toLowerCase()}-list-${name}`;
+                    const description =
+                      field.description !== '' ? field.description : undefined;
+                    const type = getTypeName(field.type);
+                    return {
+                      where: { identifier },
+                      create: {
+                        order: index,
+                        identifier,
+                        name,
+                        description,
+                        type,
+                      },
+                      update: {},
+                    };
+                  }),
+                },
+                editFields: {
+                  upsert: editFields.map((field, index) => {
+                    const name = field.name;
+                    const identifier = `${modelTypeName.toLowerCase()}-edit-${name}`;
+                    const description =
+                      field.description !== '' ? field.description : undefined;
+                    const type = getTypeName(field.type);
+                    return {
+                      where: { identifier },
+                      create: {
+                        order: index,
+                        identifier,
+                        name,
+                        description,
+                        type,
+                      },
+                      update: {},
+                    };
+                  }),
+                },
+              },
+            },
+          });
+        }
       }
     });
     // wait until all promises are resolved

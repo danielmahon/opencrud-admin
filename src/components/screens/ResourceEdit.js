@@ -315,10 +315,7 @@ class ResourceEdit extends PureComponent {
                                     return null;
                                   }
 
-                                  if (
-                                    typeKind === 'DraftJS' ||
-                                    fieldConfig.widget === 'Editor'
-                                  ) {
+                                  if (fieldConfig.widget === 'Editor') {
                                     return (
                                       <GridCell span={12} key={fieldName}>
                                         <Field

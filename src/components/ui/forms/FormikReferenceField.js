@@ -19,7 +19,6 @@ const FormikReferenceField = ({
   referencePath,
   ...props
 }) => {
-  console.log(`${plural(referenceType)}Connection`);
   return (
     <Query
       query={remote.query[`${plural(referenceType)}Connection`]}

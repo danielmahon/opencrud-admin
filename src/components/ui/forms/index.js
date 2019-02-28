@@ -3,5 +3,5 @@ export { FormikCheckbox } from './FormikCheckbox';
 export { FormikTextField } from './FormikTextField';
 export { FormikReferenceField } from './FormikReferenceField';
 export { FormikDateField } from './FormikDateField';
-export { FormikImageField } from './FormikImageField';
+export { FormikFileField } from './FormikFileField';
 export { FormikListField } from './FormikListField';

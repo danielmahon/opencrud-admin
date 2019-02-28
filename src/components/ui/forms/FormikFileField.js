@@ -1,7 +1,6 @@
 import React, { Fragment, PureComponent } from 'react';
 import { TextField, TextFieldHelperText } from '@rmwc/textfield';
 import { Icon } from '@rmwc/icon';
-import { ErrorMessage } from 'formik';
 import Uppy from '@uppy/core';
 import AwsS3 from '@uppy/aws-s3';
 import { Dashboard } from '@uppy/react';
@@ -18,6 +17,8 @@ import {
 import styled from 'styled-components';
 import path from 'path';
 import { isEmpty } from 'lodash';
+import { Subscribe } from 'unstated';
+import { AuthState } from '../../../state';
 
 const SUPPORTED_IMGIX_FORMATS = [
   'ai',
@@ -90,7 +91,7 @@ const LazyLoadImgix = styled(Imgix)`
   }
 `;
 
-class FormikImageField extends PureComponent {
+class FormikFileFieldRoot extends PureComponent {
   state = { previewOpen: false };
   constructor(props) {
     super(props);
@@ -113,6 +114,7 @@ class FormikImageField extends PureComponent {
             headers: {
               accept: 'application/json',
               'content-type': 'application/json',
+              Authorization: `Bearer ${props.auth.token}`,
             },
             body: JSON.stringify({
               filename: file.name,
@@ -293,7 +295,6 @@ class FormikImageField extends PureComponent {
               width={1920}
               height={400}
               hideUploadButton={true}
-              // note="Images and video only, 2–3 files, up to 1 MB"
               proudlyDisplayPoweredByUppy={false}
             />
           </DashboardWrapper>
@@ -310,4 +311,12 @@ class FormikImageField extends PureComponent {
   }
 }
 
-export { FormikImageField };
+const FormikFileField = props => {
+  return (
+    <Subscribe to={[AuthState]}>
+      {({ state }) => <FormikFileFieldRoot auth={state} {...props} />}
+    </Subscribe>
+  );
+};
+
+export { FormikFileField };

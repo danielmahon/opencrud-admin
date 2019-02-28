@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { plural } from 'pluralize';
-import { unionBy, difference } from 'lodash';
+import { unionBy, difference, differenceBy, remove } from 'lodash';
 
 import { getQueries, getTypeName, getTypes } from './RemoteGraphProvider';
 import { remote } from '../graphs';
@@ -10,9 +10,6 @@ class RemoteConfigProvider extends Component {
   state = { ready: false };
   componentDidMount = async () => {
     const { client } = this.props;
-    /**
-     * GENERATE MODEL CONFIGs
-     */
 
     const validModels = getQueries().reduce((acc, query) => {
       if (
@@ -31,6 +28,28 @@ class RemoteConfigProvider extends Component {
     });
 
     let modelConfigs = modelConfigsConnection.edges.map(e => e.node);
+
+    // Check for old ModelConfigs
+    const modelConfigsToRemove = differenceBy(
+      modelConfigs,
+      validModels.map(f => ({ type: f })),
+      'type'
+    );
+    if (modelConfigsToRemove.length) {
+      const deleteModelConfigResult = await client.mutate({
+        mutation: remote.mutation.deleteManyModelConfigs,
+        refetchQueries: [{ query: remote.query.modelConfigsConnection }],
+        variables: {
+          where: { id_in: modelConfigsToRemove.map(c => c.id) },
+        },
+      });
+      console.log(
+        `Deleted ${deleteModelConfigResult.data.count} ModelConfigs.`
+      );
+      modelConfigs = remove(modelConfigs, c => {
+        return modelConfigsToRemove.includes(c.type);
+      });
+    }
 
     // Check for default model configs
     const promises = validModels.map(async modelTypeName => {
@@ -181,6 +200,7 @@ class RemoteConfigProvider extends Component {
      */
     const requiredQueries = ['', 'sConnection'];
     const requiredMutations = ['create', 'update', 'delete', 'deleteMany'];
+
     modelConfigs.forEach(model => {
       requiredQueries.forEach(method => {
         let resourceType = model.type.toLowerCase();

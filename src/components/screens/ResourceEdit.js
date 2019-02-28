@@ -5,8 +5,8 @@ import { Button, ButtonIcon } from '@rmwc/button';
 import { TabBar, Tab } from '@rmwc/tabs';
 import { IconButton } from '@rmwc/icon-button';
 import { Query, Mutation } from 'react-apollo';
-import { capitalize, has, startCase, get, unionBy, reject } from 'lodash';
-import { plural, singular } from 'pluralize';
+import { capitalize, has, startCase, get, unionBy } from 'lodash';
+import { plural } from 'pluralize';
 import { CircularProgress } from '@rmwc/circular-progress';
 import styled from 'styled-components';
 import { Fab } from '@rmwc/fab';
@@ -21,7 +21,7 @@ import {
   FormikTextField,
   FormikReferenceField,
   FormikDateField,
-  FormikImageField,
+  FormikFileField,
   FormikListField,
 } from '../ui/forms';
 import {
@@ -414,15 +414,12 @@ class ResourceEdit extends PureComponent {
                                       </GridCell>
                                     );
                                   }
-                                  if (
-                                    typeName === 'Image' ||
-                                    fieldConfig.widget === 'Image'
-                                  ) {
+                                  if (fieldConfig.widget === 'File') {
                                     return (
                                       <GridCell span={12} key={fieldName}>
                                         <Field
                                           style={{ width: '100%' }}
-                                          component={FormikImageField}
+                                          component={FormikFileField}
                                           name={fieldName}
                                           disabled={disabled}
                                           label={startCase(fieldName)}

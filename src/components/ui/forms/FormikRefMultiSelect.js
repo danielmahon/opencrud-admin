@@ -1,13 +1,11 @@
-import React, { Fragment } from 'react';
+import React from 'react';
 import { TextFieldHelperText } from '@rmwc/textfield';
 import { ErrorMessage } from 'formik';
 import Select from 'react-select';
 import { Query } from 'react-apollo';
 import { plural } from 'pluralize';
-
+import { Typography } from '@rmwc/typography';
 import { remote } from '../../../graphs';
-import { getTypeName } from '../../../providers/RemoteGraphProvider';
-import { Typography } from 'rmwc';
 
 const FormikRefMultiSelect = ({
   field, // { name, value, onChange, onBlur }
@@ -39,11 +37,15 @@ const FormikRefMultiSelect = ({
           };
         });
         return (
-          <Fragment>
+          <>
             <Typography use="caption">{label}</Typography>
             <Select
               {...field}
               {...props}
+              styles={{
+                // Needs to be higher than uppy's field (1004)
+                menu: provided => ({ ...provided, zIndex: 1005 }),
+              }}
               value={value}
               placeholder={`Select ${label}...`}
               onChange={newValues => {
@@ -57,7 +59,7 @@ const FormikRefMultiSelect = ({
               <TextFieldHelperText persistent>{help}</TextFieldHelperText>
             )}
             <ErrorMessage name={field.name} component={TextFieldHelperText} />
-          </Fragment>
+          </>
         );
       }}
     </Query>

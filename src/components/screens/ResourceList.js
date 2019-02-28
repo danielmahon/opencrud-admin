@@ -41,7 +41,7 @@ import { isSubObject } from '../../providers/RemoteGraphProvider';
 import Text from '../ui/Text';
 import CardHeader from '../ui/list/CardHeader';
 import SelectedCardHeader from '../ui/list/SelectedCardHeader';
-import ListImageWidget from '../ui/widgets/ListImageWidget';
+import ListFileWidget from '../ui/widgets/ListFileWidget';
 
 const FabActions = styled('div')`
   position: fixed;
@@ -144,8 +144,8 @@ class ResourceList extends PureComponent {
     if (value === null) {
       return <Typography theme="textHintOnBackground">none</Typography>;
     }
-    if (fieldConfig.widget === 'Image') {
-      return <ListImageWidget value={value} />;
+    if (fieldConfig.widget === 'File') {
+      return <ListFileWidget value={value} />;
     }
     if ([TypeKind.OBJECT].includes(type.kind)) {
       const referenceValue =

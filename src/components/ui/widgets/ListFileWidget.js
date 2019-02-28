@@ -1,5 +1,4 @@
 import React, { PureComponent } from 'react';
-import PropTypes from 'prop-types';
 import styled from 'styled-components';
 import {
   Dialog,
@@ -78,7 +77,7 @@ const SUPPORTED_IMGIX_FORMATS = [
   'tif',
 ];
 
-export default class ListImageWidget extends PureComponent {
+export default class ListFileWidget extends PureComponent {
   state = { previewOpen: false };
   render() {
     const { previewOpen } = this.state;

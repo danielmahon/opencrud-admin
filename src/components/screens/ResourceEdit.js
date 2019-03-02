@@ -13,7 +13,7 @@ import { Fab } from '@rmwc/fab';
 import { Formik, Form, Field } from 'formik';
 import { Helmet } from 'react-helmet';
 import * as yup from 'yup';
-
+import { Switch } from '@rmwc/switch';
 import { remote } from '../../graphs';
 import {
   FormikSelect,
@@ -61,9 +61,9 @@ const getInitialValues = (item, modelConfig) => {
 };
 
 class ResourceEdit extends PureComponent {
-  state = { activeTab: 0 };
+  state = { activeTab: 0, triggersPushNotification: false };
   render() {
-    const { activeTab } = this.state;
+    const { activeTab, triggersPushNotification } = this.state;
     const { resourceParam, idParam } = this.props;
     const canBeDeleted = has(
       remote.mutation,
@@ -232,12 +232,16 @@ class ResourceEdit extends PureComponent {
                         : `update${capitalize(resourceParam)}`;
                       // Call remote mutation
                       try {
+                        const headers = triggersPushNotification
+                          ? { 'push-notification': 'true' }
+                          : null;
                         const { data } = await client.mutate({
                           mutation: remote.mutation[name],
                           variables: {
                             where: values.id ? { id: values.id } : undefined,
                             data: filterVariables(name, values),
                           },
+                          context: { headers },
                         });
                         if (isNew) {
                           return navigate(
@@ -246,6 +250,7 @@ class ResourceEdit extends PureComponent {
                         }
                         // Reset form values with updated data
                         resetForm(getInitialValues(data[name], modelConfig));
+                        this.setState({ triggersPushNotification: false });
                       } catch ({ graphQLErrors }) {
                         setSubmitting(false);
                         if (graphQLErrors) {
@@ -532,6 +537,19 @@ class ResourceEdit extends PureComponent {
                                     )}
                                   </Mutation>
                                 )}
+                                <Switch
+                                  checked={triggersPushNotification}
+                                  disabled={isSubmitting || !dirty}
+                                  onChange={evt =>
+                                    this.setState({
+                                      triggersPushNotification:
+                                        evt.target.checked,
+                                    })
+                                  }>
+                                  {`Notify users about this ${
+                                    isNew ? 'new' : 'updated'
+                                  } ${resourceParam}?`}
+                                </Switch>
                               </Actions>
                               <FabActions>
                                 <Fab

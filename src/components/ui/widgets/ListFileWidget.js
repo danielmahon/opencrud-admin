@@ -25,10 +25,11 @@ const PreviewDialog = styled(Dialog)`
   }
 `;
 const ImgWrapper = styled('div')`
-  display: flex;
   position: relative;
-  border-radius: 0.25rem;
   overflow: hidden;
+  img {
+    border-radius: 0.25rem;
+  }
 `;
 const LazyLoadImgix = styled(Imgix)`
   flex: 1;
@@ -45,8 +46,9 @@ const HoverOverlay = styled('div')`
   top: 0;
   left: 0;
   cursor: pointer;
-  width: 100%;
+  width: 128px;
   height: 100%;
+  border-radius: 0.25rem;
   background-color: ${({ theme }) => theme.rmwc.overlay};
   opacity: 0;
   :hover {
@@ -110,6 +112,7 @@ export default class ListFileWidget extends PureComponent {
           src={image}
           width={128}
           height={128}
+          imgixParams={{ crop: 'entropy' }}
           htmlAttributes={{ src: isSupported ? lqip : image }}
           attributeConfig={{
             src: 'data-src',

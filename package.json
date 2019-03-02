@@ -65,9 +65,11 @@
   },
   "main": "./dist/App.js",
   "scripts": {
-    "start": "run-p start:proxy dev",
+    "start": "run-p proxy dev",
+    "share": "run-p tunnel dev",
     "dev": "react-scripts start",
-    "start:proxy": "local-ssl-proxy -s 5004 -t 5005 -c ~/localhost.crt -k ~/localhost.key",
+    "tunnel": "lt --port 5005 --subdomain hydrochempsc-admin",
+    "proxy": "local-ssl-proxy -s 5004 -t 5005 -c ~/localhost.crt -k ~/localhost.key",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",

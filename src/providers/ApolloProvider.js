@@ -25,9 +25,11 @@ class EnhancedApolloProvider extends PureComponent {
     const middlewareLink = new ApolloLink((operation, forward) => {
       // get the authentication token from props if it exists
       // return the headers to the context so httpLink can read them
+      const { headers = {} } = operation.getContext();
       operation.setContext({
         headers: {
           Authorization: `Bearer ${props.getToken()}`,
+          ...headers,
         },
       });
       return forward(operation);
@@ -50,7 +52,10 @@ class EnhancedApolloProvider extends PureComponent {
     });
 
     const wsLink = new WebSocketLink({
-      uri: process.env.REACT_APP_GRAPHQL_ENDPOINT.replace('https', 'wss'),
+      uri: process.env.REACT_APP_GRAPHQL_ENDPOINT.replace(
+        'https',
+        'wss'
+      ).replace('http', 'ws'),
       options: {
         reconnect: true,
         connectionParams: {

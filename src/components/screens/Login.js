@@ -6,7 +6,7 @@ import styled from 'styled-components';
 import { Card, CardMedia, CardMediaContent } from '@rmwc/card';
 import { TextField, TextFieldHelperText } from '@rmwc/textfield';
 import { Formik, Form, Field } from 'formik';
-import { Transition, animated } from 'react-spring';
+import { Transition, animated } from 'react-spring/renderprops';
 import { CircularProgress } from '@rmwc/circular-progress';
 import { Mutation } from 'react-apollo';
 import * as Yup from 'yup';

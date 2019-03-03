@@ -1,6 +1,6 @@
 import React from 'react';
 import { Router, Location, Redirect } from '@reach/router';
-import { Transition, animated } from 'react-spring';
+import { Transition, animated } from 'react-spring/renderprops';
 
 import { MainLayout, AuthLayout } from '../components/layouts';
 import Dashboard from '../components/screens/Dashboard';

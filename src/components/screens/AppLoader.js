@@ -2,7 +2,7 @@ import React, { PureComponent } from 'react';
 import { Grid, GridCell } from '@rmwc/grid';
 import { CircularProgress } from '@rmwc/circular-progress';
 import styled from 'styled-components';
-import { Typography } from 'rmwc';
+import { Typography } from '@rmwc/typography';
 
 const TallGrid = styled(Grid)`
   height: 100vh;

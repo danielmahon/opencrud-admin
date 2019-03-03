@@ -19,7 +19,6 @@ const ThemeProvider = ({ children, theme, ...props }) => {
 ThemeProvider.defaultProps = {
   buttonDefaultRipple: true,
   listItemDefaultRipple: true,
-  iconStrategy: 'auto',
   theme: {},
 };
 

@@ -10,7 +10,7 @@ import { LinearProgress } from '@rmwc/linear-progress';
 import { Typography } from '@rmwc/typography';
 import styled, { ThemeConsumer } from 'styled-components';
 import { darken, lighten } from 'polished';
-import { Transition, animated } from 'react-spring';
+import { Transition } from 'react-spring/renderprops';
 
 import NavigationIcon from './NavigationIcon';
 import AppBarMenu from './AppBarMenu';
@@ -28,7 +28,7 @@ const LoadingIndicator = styled(LinearProgress)`
     background-color: ${props => lighten(0.25, props.theme.rmwc.primary)};
   }
 `;
-const StyledTopAppBar = styled(animated(TopAppBar))`
+const StyledTopAppBar = styled(TopAppBar)`
   z-index: 7;
   .mdc-top-app-bar__section {
     flex-basis: ${({ theme }) => (theme.device.isPhone ? null : '33%')};
@@ -78,10 +78,7 @@ export default class AppBar extends PureComponent {
                           </TopAppBarSection>
                           <NetworkStatusNotifier
                             render={({ loading }) => (
-                              <LoadingIndicator
-                                determinate={false}
-                                closed={!loading}
-                              />
+                              <LoadingIndicator closed={!loading} />
                             )}
                           />
                         </TopAppBarRow>

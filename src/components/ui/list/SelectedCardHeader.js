@@ -1,6 +1,6 @@
 import React, { PureComponent } from 'react';
 import PropTypes from 'prop-types';
-import { Transition, animated } from 'react-spring';
+import { Transition, animated } from 'react-spring/renderprops';
 import { capitalize } from 'lodash';
 import styled from 'styled-components';
 import { Typography } from '@rmwc/typography';

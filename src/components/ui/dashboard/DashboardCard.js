@@ -5,7 +5,7 @@ import { ListDivider } from '@rmwc/list';
 import { Icon } from '@rmwc/icon';
 import { Typography } from '@rmwc/typography';
 import { Query } from 'react-apollo';
-import { Transition, animated } from 'react-spring';
+import { Transition, animated } from 'react-spring/renderprops';
 import { plural } from 'pluralize';
 
 import { remote } from '../../../graphs';

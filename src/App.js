@@ -4,9 +4,8 @@ import React from 'react';
 import 'normalize.css';
 import 'typeface-roboto';
 import 'material-icons';
-import 'material-components-web/dist/material-components-web.min.css';
-import '@rmwc/circular-progress/circular-progress.css';
-import '@rmwc/data-table/data-table.css';
+// import 'material-components-web/dist/material-components-web.min.css';
+// import '@rmwc/circular-progress/circular-progress.css';
 import 'react-placeholder/lib/reactPlaceholder.css';
 import '@uppy/core/dist/style.css';
 import '@uppy/dashboard/dist/style.css';
@@ -18,7 +17,8 @@ import 'draft-js-focus-plugin/lib/plugin.css';
 import 'draft-js-alignment-plugin/lib/plugin.css';
 import 'prismjs/themes/prism.css';
 import 'react-placeholder/lib/reactPlaceholder.css';
-import './global.css';
+import './styles/material.scss';
+import './styles/global.scss';
 
 // Lazyload Images
 import 'lazysizes';

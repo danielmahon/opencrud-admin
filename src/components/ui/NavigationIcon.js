@@ -1,7 +1,7 @@
 import React from 'react';
 import { TopAppBarNavigationIcon } from '@rmwc/top-app-bar';
 import { Icon } from '@rmwc/icon';
-import { Transition } from 'react-spring';
+import { Transition } from 'react-spring/renderprops';
 
 import { Subscribe, UIState } from '../../state';
 

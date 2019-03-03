@@ -24,14 +24,14 @@ const FormikRefMultiSelect = ({
         if (loading) return null;
         const value = field.value
           ? field.value.map(data => ({
-              label: data.name,
+              label: data.title || data.name,
               value: data.id,
               data: data,
             }))
           : [];
         const options = data[name].edges.map(({ node }) => {
           return {
-            label: node.name,
+            label: node.title || node.name,
             value: node.id,
             data: node,
           };

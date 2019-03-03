@@ -11,7 +11,7 @@ import {
   DataTableRow,
   DataTableCell,
 } from '@rmwc/data-table';
-import { Card, CardAction, CardActions, CardActionIcons } from '@rmwc/card';
+import { Card, CardActions, CardActionIcons, CardActionIcon } from '@rmwc/card';
 import { Checkbox } from '@rmwc/checkbox';
 import { Typography } from '@rmwc/typography';
 import { Button, ButtonIcon } from '@rmwc/button';
@@ -34,7 +34,7 @@ import { singular, plural } from 'pluralize';
 import styled from 'styled-components';
 import Tooltip from '@material-ui/core/Tooltip';
 import isRemoteUrl from 'is-absolute-url';
-import { Select } from 'rmwc';
+import { Select } from '@rmwc/select';
 
 import { remote } from '../../graphs';
 import { isSubObject } from '../../providers/RemoteGraphProvider';
@@ -182,7 +182,7 @@ class ResourceList extends PureComponent {
     if (type.kind === TypeKind.ENUM) {
       return (
         <ChipSet>
-          <SmallChip text={value} />
+          <SmallChip label={value} />
         </ChipSet>
       );
     }
@@ -417,12 +417,12 @@ class ResourceList extends PureComponent {
                             {start}-{end} of {total}
                           </Typography>
                           <PaginationIcons>
-                            <CardAction
+                            <CardActionIcon
                               icon="chevron_left"
                               disabled={page < 2}
                               onClick={() => this.setState({ page: page - 1 })}
                             />
-                            <CardAction
+                            <CardActionIcon
                               icon="chevron_right"
                               disabled={page * first > total - 1}
                               onClick={() => this.setState({ page: page + 1 })}

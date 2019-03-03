@@ -14,7 +14,7 @@ import {
   ListItemMeta,
 } from '@rmwc/list';
 import { Query, Mutation } from 'react-apollo';
-import { Transition, animated } from 'react-spring';
+import { Transition, animated } from 'react-spring/renderprops';
 import { omit } from 'lodash';
 import { Formik, Form, Field } from 'formik';
 import {

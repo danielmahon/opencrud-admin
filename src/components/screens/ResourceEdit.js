@@ -382,11 +382,12 @@ class ResourceEdit extends PureComponent {
                                       fieldName
                                     );
                                     const referenceType = fieldConfig.type.toLowerCase();
-                                    const referencePath = isNew
-                                      ? null
-                                      : `/edit/${referenceType}/${
-                                          referenceObject.id
-                                        }`;
+                                    const referencePath =
+                                      isNew || !referenceObject
+                                        ? null
+                                        : `/edit/${referenceType}/${
+                                            referenceObject.id
+                                          }`;
                                     return (
                                       <GridCell span={12} key={fieldName}>
                                         <Field

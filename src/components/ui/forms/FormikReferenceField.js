@@ -43,18 +43,25 @@ const FormikReferenceField = ({
           );
         }
         const name = `${plural(referenceType)}Connection`;
-        const items = data[name].edges
-          .map(e => e.node)
-          .map(item => {
+        const items = data[name].edges.reduce(
+          (acc, { node }) => {
             const label =
-              item[referenceLabel] || item.name || item.title || item.id;
-            return {
+              node[referenceLabel] || node.name || node.title || node.id;
+            acc.push({
               label: label,
-              value: item.id,
-              // key: item.id,
-              data: item,
-            };
-          });
+              value: node.id,
+              data: node,
+            });
+            return acc;
+          },
+          [
+            {
+              label: 'None',
+              value: '',
+              data: {},
+            },
+          ]
+        );
         return (
           <Fragment>
             <Select

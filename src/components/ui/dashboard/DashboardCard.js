@@ -1,13 +1,12 @@
 import React from 'react';
 import { navigate } from '@reach/router';
-import { Card, CardAction, CardActions } from '@rmwc/card';
+import { Card, CardActionButton, CardActions } from '@rmwc/card';
 import { ListDivider } from '@rmwc/list';
-import { Icon } from '@rmwc/icon';
+import { ButtonIcon } from '@rmwc/button';
 import { Typography } from '@rmwc/typography';
 import { Query } from 'react-apollo';
 import { Transition, animated } from 'react-spring/renderprops';
 import { plural } from 'pluralize';
-
 import { remote } from '../../../graphs';
 
 const DashboardCard = ({ resource }) => {
@@ -44,15 +43,15 @@ const DashboardCard = ({ resource }) => {
                       </div>
                       <ListDivider />
                       <CardActions fullBleed style={{ minHeight: 0 }}>
-                        <CardAction
+                        <CardActionButton
                           onClick={() =>
                             navigate(
                               `/list/${plural(resource.type).toLowerCase()}`
                             )
                           }>
                           View all {plural(resource.type)}{' '}
-                          <Icon icon="arrow_forward" />
-                        </CardAction>
+                          <ButtonIcon icon="arrow_forward" />
+                        </CardActionButton>
                       </CardActions>
                     </Card>
                   </animated.div>

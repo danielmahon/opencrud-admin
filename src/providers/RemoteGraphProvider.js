@@ -136,6 +136,7 @@ const filterVariables = (name, variables) => {
       // TODO: Support connecting any unique key
       if (val && inputField && isSubObject(inputField)) {
         const id = isPlainObject(val) ? val.id : val;
+        if (!id) return { disconnect: true };
         return { connect: { id } };
       }
       return val;

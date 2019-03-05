@@ -142,6 +142,7 @@ class Login extends PureComponent {
                                       }}
                                     />
                                     <TextFieldHelperText
+                                      theme="error"
                                       persistent
                                       validationMsg>
                                       {touched.email && errors.email}
@@ -163,6 +164,7 @@ class Login extends PureComponent {
                                       outlined
                                     />
                                     <TextFieldHelperText
+                                      theme="error"
                                       persistent
                                       validationMsg>
                                       {touched.password && errors.password}

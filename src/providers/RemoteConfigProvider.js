@@ -198,16 +198,16 @@ class RemoteConfigProvider extends Component {
     /**
      * CHECK for required queries/mutations
      */
-    const requiredQueries = ['', 'sConnection'];
-    const requiredMutations = ['create', 'update', 'delete', 'deleteMany'];
 
     modelConfigs.forEach(model => {
+      const requiredQueries = [
+        model.type.toLowerCase(),
+        `${plural(model.type.toLowerCase())}Connection`,
+      ];
+      const requiredMutations = ['create', 'update', 'delete', 'deleteMany'];
       requiredQueries.forEach(method => {
-        let resourceType = model.type.toLowerCase();
-        if (!remote.query[`${resourceType}${method}`]) {
-          throw new Error(
-            `Missing ${resourceType}${method} query in remote schema!`
-          );
+        if (!remote.query[method]) {
+          throw new Error(`Missing ${method} query in remote schema!`);
         }
       });
       requiredMutations.forEach(method => {

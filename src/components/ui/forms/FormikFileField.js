@@ -278,17 +278,19 @@ class FormikFileFieldRoot extends PureComponent {
       : image;
     return (
       <Fragment>
-        {value && type.includes('video') ? (
-          <div style={{ position: 'relative', paddingTop: '56.25%' }}>
-            <ReactPlayer
-              url={value}
-              width="100%"
-              height="100%"
-              config={{
-                vimeo: { playerOptions: { autopause: true }, preload: true },
-              }}
-              style={{ position: 'absolute', top: 0, left: 0 }}
-            />
+        {type && type.includes('video') ? (
+          <div style={{ maxWidth: 640 }}>
+            <div style={{ position: 'relative', paddingTop: '56.25%' }}>
+              <ReactPlayer
+                url={value}
+                width="100%"
+                height="100%"
+                config={{
+                  vimeo: { playerOptions: { autopause: true }, preload: true },
+                }}
+                style={{ position: 'absolute', top: 0, left: 0 }}
+              />
+            </div>
           </div>
         ) : (
           value && (

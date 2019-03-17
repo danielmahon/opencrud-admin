@@ -145,7 +145,7 @@ class ResourceList extends PureComponent {
       return <Typography theme="textHintOnBackground">none</Typography>;
     }
     if (fieldConfig.widget === 'File') {
-      return <ListFileWidget value={value} />;
+      return <ListFileWidget value={value} item={item} />;
     }
     if ([TypeKind.OBJECT].includes(type.kind)) {
       const referenceValue =

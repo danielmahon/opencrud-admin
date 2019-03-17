@@ -3,6 +3,7 @@ import { TextField, TextFieldHelperText } from '@rmwc/textfield';
 import { Icon } from '@rmwc/icon';
 import Uppy from '@uppy/core';
 import AwsS3 from '@uppy/aws-s3';
+import Tus from '@uppy/tus';
 import { Dashboard } from '@uppy/react';
 import { Elevation } from '@rmwc/elevation';
 import SparkMD5 from 'spark-md5';
@@ -18,6 +19,7 @@ import styled from 'styled-components';
 import path from 'path';
 import { isEmpty } from 'lodash';
 import { Subscribe } from 'unstated';
+import ReactPlayer from 'react-player';
 import { AuthState } from '../../../state';
 
 const SUPPORTED_IMGIX_FORMATS = [
@@ -99,15 +101,65 @@ class FormikFileFieldRoot extends PureComponent {
       restrictions: { maxNumberOfFiles: 1 },
       autoProceed: false,
     });
-    this.uppy.use(AwsS3, {
-      limit: 1,
-      timeout: 1000 * 60 * 60,
-      getUploadParameters: async file => {
+    this.uppy.on('file-added', file => {
+      if (file.type.includes('video')) {
+        this.uppy.use(Tus, {
+          id: 'vimeo',
+          endpoint: `${process.env.REACT_APP_GRAPHQL_ENDPOINT}/video/upload`,
+          resume: true,
+          autoRetry: true,
+          retryDelays: [0, 1000, 3000, 5000],
+          headers: { authorization: `Bearer ${props.auth.token}` },
+        });
+      } else {
+        this.uppy.use(AwsS3, {
+          id: 'google',
+          limit: 1,
+          timeout: 1000 * 60 * 60,
+          getUploadParameters: async file => {
+            // Add fingerprint to file
+            const checksum = await this.getFileMD5(file.data);
+            // Send a request to our signing endpoint.
+            const response = await fetch(
+              process.env.REACT_APP_GRAPHQL_ENDPOINT + '/getSignedPutUrl',
+              {
+                method: 'post',
+                // Send and receive JSON.
+                headers: {
+                  accept: 'application/json',
+                  'content-type': 'application/json',
+                  Authorization: `Bearer ${props.auth.token}`,
+                },
+                body: JSON.stringify({
+                  filename: file.name,
+                  contentType: file.type,
+                  checksum,
+                }),
+              }
+            );
+            const result = await response.json();
+            if (result.error) throw new Error(result.error);
+            return result;
+          },
+        });
+      }
+    });
+    this.uppy.on('upload-error', (file, error) => {
+      this.uppy.info(error, 'error', 5000);
+    });
+    this.uppy.on('upload-success', async (file, body) => {
+      this.props.form.setSubmitting(true);
+      if (file.type.includes('video')) {
+        this.uppy.setState({
+          info: {
+            type: 'info',
+            message: 'Processing, please wait...',
+          },
+        });
         // Add fingerprint to file
         const checksum = await this.getFileMD5(file.data);
-        // Send a request to our signing endpoint.
         const response = await fetch(
-          process.env.REACT_APP_GRAPHQL_ENDPOINT + '/getSignedPutUrl',
+          process.env.REACT_APP_GRAPHQL_ENDPOINT + '/video/upload/finish',
           {
             method: 'post',
             // Send and receive JSON.
@@ -117,31 +169,42 @@ class FormikFileFieldRoot extends PureComponent {
               Authorization: `Bearer ${props.auth.token}`,
             },
             body: JSON.stringify({
-              filename: file.name,
-              contentType: file.type,
+              fileId: body.uploadURL.split('/').pop(),
+              name: this.props.form.values.name,
               checksum,
             }),
           }
         );
-        const result = await response.json();
-        if (result.error) throw new Error(result.error);
-        return result;
-      },
-    });
-    this.uppy.on('upload-error', (file, error) => {
-      this.uppy.info(error, 'error', 5000);
-    });
-    this.uppy.on('complete', result => {
-      if (result.failed.length || !result.successful.length) return;
-      const meta = result.successful[0].meta;
-      this.props.form.setValues({
-        ...this.props.form.values,
-        [this.props.field.name]: `${process.env.REACT_APP_IMGIX_ENDPOINT}/${
-          meta.key
-        }`,
-        filename: meta.filename,
-        checksum: meta.checksum,
-      });
+        const { videoId, error } = await response.json();
+        if (error) {
+          this.props.form.setSubmitting(false);
+          this.uppy.reset();
+          return this.uppy.info({
+            type: 'error',
+            message: error,
+          });
+        }
+        this.props.form.setValues({
+          ...this.props.form.values,
+          [this.props.field.name]: `${
+            process.env.REACT_APP_VIDEO_ENDPOINT
+          }/${videoId}`,
+          filename: file.name,
+          type: file.type,
+          checksum,
+        });
+      } else {
+        const meta = file.meta;
+        this.props.form.setValues({
+          ...this.props.form.values,
+          [this.props.field.name]: `${process.env.REACT_APP_IMGIX_ENDPOINT}/${
+            meta.key
+          }`,
+          filename: meta.filename,
+          checksum: meta.checksum,
+          type: file.type,
+        });
+      }
       this.props.form.submitForm();
     });
   }
@@ -192,6 +255,7 @@ class FormikFileFieldRoot extends PureComponent {
       ...props
     } = this.props;
     const { previewOpen } = this.state;
+    const { type } = form.values;
     const isSupported = SUPPORTED_IMGIX_FORMATS.includes(
       path.extname(value).substring(1)
     );
@@ -214,67 +278,81 @@ class FormikFileFieldRoot extends PureComponent {
       : image;
     return (
       <Fragment>
-        {value && (
-          <Fragment>
-            <Elevation
-              z={4}
-              style={{
-                display: 'inline-flex',
-                borderRadius: '.25rem',
-                overflow: 'hidden',
-                marginBottom: '1rem',
-                position: 'relative',
-              }}>
-              <LazyLoadImgix
-                className="lazyload blur-up"
-                src={image}
-                alt="preview"
-                height={480}
-                imgixParams={{ fit: 'max' }}
-                htmlAttributes={{ src: lqip }}
-                attributeConfig={{
-                  src: 'data-src',
-                  srcSet: 'data-srcset',
-                  sizes: 'data-sizes',
-                }}
-              />
-              {isSupported && (
-                <HoverOverlay
-                  onClick={() => this.setState({ previewOpen: true })}>
-                  <Icon
-                    theme="textPrimaryOnDark"
-                    icon="zoom_in"
-                    style={{ fontSize: '3rem' }}
-                  />
-                </HoverOverlay>
-              )}
-            </Elevation>
-            <PreviewDialog
-              open={previewOpen}
-              onClose={() => this.setState({ previewOpen: false })}>
-              <DialogContent>
+        {value && type.includes('video') ? (
+          <div style={{ position: 'relative', paddingTop: '56.25%' }}>
+            <ReactPlayer
+              url={value}
+              width="100%"
+              height="100%"
+              config={{
+                vimeo: { playerOptions: { autopause: true }, preload: true },
+              }}
+              style={{ position: 'absolute', top: 0, left: 0 }}
+            />
+          </div>
+        ) : (
+          value && (
+            <Fragment>
+              <Elevation
+                z={4}
+                style={{
+                  display: 'inline-flex',
+                  borderRadius: '.25rem',
+                  overflow: 'hidden',
+                  marginBottom: '1rem',
+                  position: 'relative',
+                }}>
                 <LazyLoadImgix
-                  className="lazyload"
+                  className="lazyload blur-up"
                   src={image}
-                  sizes="90vw"
-                  htmlAttributes={{
-                    style: { width: '90vw' },
-                    src: lqip,
-                  }}
+                  alt="preview"
+                  height={480}
+                  imgixParams={{ fit: 'max' }}
+                  htmlAttributes={{ src: lqip }}
                   attributeConfig={{
                     src: 'data-src',
                     srcSet: 'data-srcset',
                     sizes: 'data-sizes',
                   }}
                 />
-              </DialogContent>
-              <DialogActions>
-                <DialogButton action="close" type="button">
-                  Close
-                </DialogButton>
-              </DialogActions>
-            </PreviewDialog>
-          </Fragment>
+                {isSupported && (
+                  <HoverOverlay
+                    onClick={() => this.setState({ previewOpen: true })}>
+                    <Icon
+                      theme="textPrimaryOnDark"
+                      icon="zoom_in"
+                      style={{ fontSize: '3rem' }}
+                    />
+                  </HoverOverlay>
+                )}
+              </Elevation>
+              <PreviewDialog
+                open={previewOpen}
+                onClose={() => this.setState({ previewOpen: false })}>
+                <DialogContent>
+                  <LazyLoadImgix
+                    className="lazyload"
+                    src={image}
+                    sizes="90vw"
+                    htmlAttributes={{
+                      style: { width: '90vw' },
+                      src: lqip,
+                    }}
+                    attributeConfig={{
+                      src: 'data-src',
+                      srcSet: 'data-srcset',
+                      sizes: 'data-sizes',
+                    }}
+                  />
+                </DialogContent>
+                <DialogActions>
+                  <DialogButton action="close" type="button">
+                    Close
+                  </DialogButton>
+                </DialogActions>
+              </PreviewDialog>
+            </Fragment>
+          )
         )}
         {value && (
           <TextField
@@ -291,7 +369,7 @@ class FormikFileFieldRoot extends PureComponent {
               {...field}
               {...props}
               uppy={this.uppy}
-              plugins={['AwsS3', 'GoogleDrive']}
+              // plugins={['AwsS3', 'GoogleDrive']}
               width={1920}
               height={400}
               hideUploadButton={true}

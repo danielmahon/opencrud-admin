@@ -10,6 +10,7 @@ import { Icon } from '@rmwc/icon';
 import Imgix, { buildURL } from 'react-imgix';
 import path from 'path';
 import { isPlainObject } from 'lodash';
+import ReactPlayer from 'react-player';
 
 const PreviewDialog = styled(Dialog)`
   z-index: 2000;
@@ -27,9 +28,7 @@ const PreviewDialog = styled(Dialog)`
 const ImgWrapper = styled('div')`
   position: relative;
   overflow: hidden;
-  img {
-    border-radius: 0.25rem;
-  }
+  border-radius: 0.25rem;
 `;
 const LazyLoadImgix = styled(Imgix)`
   flex: 1;
@@ -83,9 +82,25 @@ export default class ListFileWidget extends PureComponent {
   state = { previewOpen: false };
   render() {
     const { previewOpen } = this.state;
-    let { value } = this.props;
+    let { value, item } = this.props;
+
     if (isPlainObject(value)) {
       value = value.src;
+    }
+
+    if (item.type && item.type.includes('video')) {
+      return (
+        <ImgWrapper>
+          <ReactPlayer
+            url={value}
+            width={128}
+            height={128}
+            config={{
+              vimeo: { playerOptions: { autopause: true }, preload: true },
+            }}
+          />
+        </ImgWrapper>
+      );
     }
     const isSupported = SUPPORTED_IMGIX_FORMATS.includes(
       path.extname(value).substring(1)

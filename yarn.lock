@@ -1910,6 +1910,13 @@
     "@uppy/xhr-upload" "^0.30.2"
     resolve-url "^0.2.1"
 
+"@uppy/companion-client@0.28.3":
+  version "0.28.3"
+  resolved "https://registry.yarnpkg.com/@uppy/companion-client/-/companion-client-0.28.3.tgz#c41800f1f609b8e0e25a2266886e68df0485b121"
+  integrity sha512-+j9mFGpZi2H5MStQiGIOGZ1VYyPMH6i9kjcV01SF8fQPfwgXhssF65gNsa9HwmANtGeCFyvfgUd+PJN8vFT+Mg==
+  dependencies:
+    namespace-emitter "^2.0.1"
+
 "@uppy/companion-client@^0.28.2":
   version "0.28.2"
   resolved "https://registry.yarnpkg.com/@uppy/companion-client/-/companion-client-0.28.2.tgz#03ab34f7e967bc054c28ea0b330a472dcf306e93"
@@ -2018,6 +2025,22 @@
   integrity sha512-wAaBi0edyPmfZzgpf1X5nn7d7Qq0BwL2g0sAFnv2q9qok8Y6YgGwbKUzynbxpXWgrHmaSsMCYsgxrL3wLQXpGA==
   dependencies:
     "@uppy/utils" "^0.30.2"
+
+"@uppy/tus@0.30.3":
+  version "0.30.3"
+  resolved "https://registry.yarnpkg.com/@uppy/tus/-/tus-0.30.3.tgz#1234158920f44a1ce1e365fe04888f18345b73d1"
+  integrity sha512-2DPd8woh3m44V0YZ/ipN9JXCtnuVaZGM8yC0NFTcwakOXc1sQzDbV4fZ2i5nkP64Vp+33Hlgd+xMLMMMOtWYiw==
+  dependencies:
+    "@uppy/companion-client" "0.28.3"
+    "@uppy/utils" "0.30.3"
+    tus-js-client "1.6.0"
+
+"@uppy/utils@0.30.3":
+  version "0.30.3"
+  resolved "https://registry.yarnpkg.com/@uppy/utils/-/utils-0.30.3.tgz#b2f78db1974ae24290b572d0916e1f4eb1de61a8"
+  integrity sha512-v0+3+p70Rl4qMS5p5+n89Oa/Z61FAitcJ8HS06NHiGo2HArO8VseBBAbNncF/SdUqczWhz7dWQ3/uXUx8jli3Q==
+  dependencies:
+    lodash.throttle "^4.1.1"
 
 "@uppy/utils@^0.30.2":
   version "0.30.2"
@@ -3255,6 +3278,11 @@ bser@^2.0.0:
   integrity sha1-mseNPtXZFYBP2HrLFYvHlxR6Fxk=
   dependencies:
     node-int64 "^0.4.0"
+
+buffer-from@^0.1.1:
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/buffer-from/-/buffer-from-0.1.2.tgz#15f4b9bcef012044df31142c14333caf6e0260d0"
+  integrity sha512-RiWIenusJsmI2KcvqQABB83tLxCByE3upSP8QU3rJDMVFGPWLvPQJt/O1Su9moRWeH7d+Q2HYb68f6+v+tw2vg==
 
 buffer-from@^1.0.0:
   version "1.1.1"
@@ -7449,7 +7477,7 @@ joi@^11.1.1:
     isemail "3.x.x"
     topo "2.x.x"
 
-js-base64@^2.1.8:
+js-base64@^2.1.8, js-base64@^2.4.9:
   version "2.5.1"
   resolved "https://registry.yarnpkg.com/js-base64/-/js-base64-2.5.1.tgz#1efa39ef2c5f7980bb1784ade4a8af2de3291121"
   integrity sha512-M7kLczedRMYX4L8Mdh4MzyAMM9O5osx+4FcOQuTvr3A9F2D9S5JXheN0ewNbrvK2UatkTRhL5ejGmGSjNMiZuw==
@@ -7802,6 +7830,11 @@ load-json-file@^4.0.0:
     parse-json "^4.0.0"
     pify "^3.0.0"
     strip-bom "^3.0.0"
+
+load-script@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/load-script/-/load-script-1.0.0.tgz#0491939e0bee5643ee494a7e3da3d2bac70c6ca4"
+  integrity sha1-BJGTngvuVkPuSUp+PaPSuscMbKQ=
 
 loader-fs-cache@^1.0.0:
   version "1.0.1"
@@ -10003,7 +10036,7 @@ prompts@^0.1.9:
     kleur "^2.0.1"
     sisteransi "^0.1.1"
 
-prop-types@15.7.2:
+prop-types@15.7.2, prop-types@^15.5.6:
   version "15.7.2"
   resolved "https://registry.yarnpkg.com/prop-types/-/prop-types-15.7.2.tgz#52c41e75b8c87e72b9d9360e0206b99dcbffa6c5"
   integrity sha512-8QQikdH7//R2vurIJSutZ1smHYTcLpRWEOlHnzcWHmBYrOGUysKwSsrC89BCiFj3CbrfJ/nXFdJepOVrY1GCHQ==
@@ -10343,6 +10376,15 @@ react-placeholder@3.0.2:
   integrity sha512-PItNXiq7GO3bK8iLobGLcBeRPtxyGdtAdZ7S0zeVdAlpIlUrJy+c6igzKr6uyK74Fh/WhOL5uCNju8FVUjCJEQ==
   dependencies:
     prop-types "^15.6.0"
+
+react-player@1.9.3:
+  version "1.9.3"
+  resolved "https://registry.yarnpkg.com/react-player/-/react-player-1.9.3.tgz#ad74d4c3bf62f2d66ce7c79636642486a6ad7711"
+  integrity sha512-EruSLtMcnTrwy9F99hG1dAVVSg0ZNQDB4Df6CnKLkFcCppOCZrQAPq+abZOcuXun7VRaXPGpkOqhLCdiLfZZfw==
+  dependencies:
+    deepmerge "^3.0.0"
+    load-script "^1.0.0"
+    prop-types "^15.5.6"
 
 react-scripts@2.1.5:
   version "2.1.5"
@@ -12046,6 +12088,17 @@ tunnel-agent@^0.6.0:
   integrity sha1-J6XeoGs2sEoKmWZ3SykIaPD8QP0=
   dependencies:
     safe-buffer "^5.0.1"
+
+tus-js-client@1.6.0:
+  version "1.6.0"
+  resolved "https://registry.yarnpkg.com/tus-js-client/-/tus-js-client-1.6.0.tgz#b6ea17c97a2de382b7e477fe133c7bedf3964272"
+  integrity sha512-8y3A/pq5SKHZPJPU2LZ0KC+TNaol7TDNplprS5PEsfnjOcqHU2pJ7E6oTEXsA32tZkWHs+4JguAfXZd4XV0Jlg==
+  dependencies:
+    buffer-from "^0.1.1"
+    extend "^3.0.0"
+    js-base64 "^2.4.9"
+    lodash.throttle "^4.1.1"
+    url-parse "^1.4.3"
 
 tweetnacl@^0.14.3, tweetnacl@~0.14.0:
   version "0.14.5"

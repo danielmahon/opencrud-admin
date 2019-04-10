@@ -8,7 +8,7 @@ import {
 } from '@rmwc/drawer';
 import { List, ListItem, ListItemGraphic, ListDivider } from '@rmwc/list';
 import styled, { ThemeConsumer } from 'styled-components';
-import { capitalize, lowerCase } from 'lodash';
+import { startCase, kebabCase } from 'lodash';
 import pluralize from 'pluralize';
 import { Location, Link } from '@reach/router';
 import { Query } from 'react-apollo';
@@ -109,9 +109,9 @@ class SideBar extends PureComponent {
                                 );
                               }
                               return models.map(model => {
-                                const label = capitalize(pluralize(model.type));
-                                const pathname = `/list/${lowerCase(
-                                  pluralize(model.type)
+                                const label = startCase(pluralize(model.type));
+                                const pathname = `/list/${pluralize(
+                                  kebabCase(model.type)
                                 )}`;
                                 return (
                                   <ListItem

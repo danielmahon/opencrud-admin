@@ -5,7 +5,15 @@ import { Button, ButtonIcon } from '@rmwc/button';
 import { TabBar, Tab } from '@rmwc/tabs';
 import { IconButton } from '@rmwc/icon-button';
 import { Query, Mutation } from 'react-apollo';
-import { capitalize, has, startCase, get, unionBy } from 'lodash';
+import {
+  upperFirst,
+  has,
+  startCase,
+  get,
+  unionBy,
+  camelCase,
+  kebabCase,
+} from 'lodash';
 import { plural } from 'pluralize';
 import { CircularProgress } from '@rmwc/circular-progress';
 import styled from 'styled-components';
@@ -63,11 +71,13 @@ class ResourceEdit extends PureComponent {
   state = { activeTab: 0 };
   render() {
     const { activeTab } = this.state;
-    const { resourceParam, idParam } = this.props;
+    const { idParam } = this.props;
+    const resourceParam = camelCase(this.props.resourceParam);
     const canBeDeleted = has(
       remote.mutation,
-      `delete${capitalize(resourceParam)}`
+      `delete${upperFirst(resourceParam)}`
     );
+    console.log(resourceParam);
     const isNew = idParam === 'new';
     return (
       <Query query={remote.query.modelConfigsConnection}>
@@ -81,7 +91,10 @@ class ResourceEdit extends PureComponent {
 
               if (!isNew && !data[resourceParam]) {
                 return (
-                  <Redirect to={`/list/${plural(resourceParam)}`} noThrow />
+                  <Redirect
+                    to={`/list/${plural(kebabCase(resourceParam))}`}
+                    noThrow
+                  />
                 );
               }
               // Format fields
@@ -89,7 +102,7 @@ class ResourceEdit extends PureComponent {
 
               const modelConfig = modelConfigsConnection.edges
                 .map(e => e.node)
-                .find(node => node.type === capitalize(resourceParam));
+                .find(node => node.type === upperFirst(resourceParam));
 
               // Create validation schema
               const schemaType = remote.schema.types.find(
@@ -99,12 +112,12 @@ class ResourceEdit extends PureComponent {
 
               const createInputFields = remote.schema.types.find(
                 type =>
-                  type.name === `${capitalize(modelConfig.type)}CreateInput`
+                  type.name === `${upperFirst(modelConfig.type)}CreateInput`
               ).inputFields;
 
               const updateInputFields = remote.schema.types.find(
                 type =>
-                  type.name === `${capitalize(modelConfig.type)}UpdateInput`
+                  type.name === `${upperFirst(modelConfig.type)}UpdateInput`
               ).inputFields;
 
               const schemaInputFields = isNew
@@ -122,7 +135,7 @@ class ResourceEdit extends PureComponent {
               const title =
                 initialValues.name ||
                 initialValues.title ||
-                capitalize(idParam);
+                upperFirst(idParam);
 
               const shouldBeRequired = (fieldName, fieldConfig) => {
                 if (
@@ -201,7 +214,7 @@ class ResourceEdit extends PureComponent {
               return (
                 <Grid>
                   <Helmet
-                    title={`Edit ${capitalize(resourceParam)}: ${title}`}
+                    title={`Edit ${upperFirst(resourceParam)}: ${title}`}
                   />
                   <GridCell span={1}>
                     <IconButton
@@ -227,8 +240,8 @@ class ResourceEdit extends PureComponent {
                       { resetForm, setSubmitting, setFieldError }
                     ) => {
                       const name = isNew
-                        ? `create${capitalize(resourceParam)}`
-                        : `update${capitalize(resourceParam)}`;
+                        ? `create${upperFirst(resourceParam)}`
+                        : `update${upperFirst(resourceParam)}`;
                       // Call remote mutation
                       try {
                         const { data } = await client.mutate({
@@ -240,7 +253,7 @@ class ResourceEdit extends PureComponent {
                         });
                         if (isNew) {
                           return navigate(
-                            `/edit/${resourceParam}/${data[name].id}`
+                            `/edit/${kebabCase(resourceParam)}/${data[name].id}`
                           );
                         }
                         // Reset form values with updated data
@@ -508,13 +521,15 @@ class ResourceEdit extends PureComponent {
                                   <Mutation
                                     mutation={
                                       remote.mutation[
-                                        `delete${capitalize(resourceParam)}`
+                                        `delete${upperFirst(resourceParam)}`
                                       ]
                                     }
                                     onError={error => window.alert(error)}
                                     onCompleted={() => {
                                       navigate(
-                                        `/list/${plural(resourceParam)}`
+                                        `/list/${plural(
+                                          kebabCase(resourceParam)
+                                        )}`
                                       );
                                     }}
                                     variables={{ where: { id: idParam } }}>

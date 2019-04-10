@@ -1,7 +1,7 @@
 import React, { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { Transition, animated } from 'react-spring/renderprops';
-import { capitalize } from 'lodash';
+import { startCase } from 'lodash';
 import styled from 'styled-components';
 import { Typography } from '@rmwc/typography';
 
@@ -53,7 +53,7 @@ export default class SelectedCardHeader extends PureComponent {
             <animated.div style={props}>
               <CardHeader>
                 <CardHeaderTitle use="body1">
-                  {`${selected.length} ${capitalize(resourceParam)} selected`}
+                  {`${selected.length} ${startCase(resourceParam)} selected`}
                 </CardHeaderTitle>
                 <CardHeaderButtons>
                   <ListDeleteButton

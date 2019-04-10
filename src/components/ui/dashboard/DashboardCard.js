@@ -7,10 +7,11 @@ import { Typography } from '@rmwc/typography';
 import { Query } from 'react-apollo';
 import { Transition, animated } from 'react-spring/renderprops';
 import { plural } from 'pluralize';
+import { camelCase, startCase, kebabCase } from 'lodash';
 import { remote } from '../../../graphs';
 
 const DashboardCard = ({ resource }) => {
-  const queryName = `${plural(resource.type.toLowerCase())}Connection`;
+  const queryName = `${plural(camelCase(resource.type))}Connection`;
 
   return (
     <Query query={remote.query[queryName]} fetchPolicy="cache-and-network">
@@ -32,7 +33,9 @@ const DashboardCard = ({ resource }) => {
                       <div style={{ padding: '1rem' }}>
                         <Typography use="headline5" tag="div">
                           {count}{' '}
-                          {count > 1 ? plural(resource.type) : resource.type}
+                          {count > 1
+                            ? plural(startCase(resource.type))
+                            : startCase(resource.type)}
                         </Typography>
                         <Typography
                           use="body1"
@@ -46,10 +49,10 @@ const DashboardCard = ({ resource }) => {
                         <CardActionButton
                           onClick={() =>
                             navigate(
-                              `/list/${plural(resource.type).toLowerCase()}`
+                              `/list/${plural(kebabCase(resource.type))}`
                             )
                           }>
-                          View all {plural(resource.type)}{' '}
+                          View all {plural(startCase(resource.type))}{' '}
                           <ButtonIcon icon="arrow_forward" />
                         </CardActionButton>
                       </CardActions>

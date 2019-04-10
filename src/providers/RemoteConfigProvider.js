@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { plural } from 'pluralize';
-import { unionBy, difference, differenceBy, remove } from 'lodash';
+import { unionBy, difference, differenceBy, remove, camelCase } from 'lodash';
 
 import { getQueries, getTypeName, getTypes } from './RemoteGraphProvider';
 import { remote } from '../graphs';
@@ -201,8 +201,8 @@ class RemoteConfigProvider extends Component {
 
     modelConfigs.forEach(model => {
       const requiredQueries = [
-        model.type.toLowerCase(),
-        `${plural(model.type.toLowerCase())}Connection`,
+        camelCase(model.type),
+        `${plural(camelCase(model.type))}Connection`,
       ];
       const requiredMutations = ['create', 'update', 'delete', 'deleteMany'];
       requiredQueries.forEach(method => {

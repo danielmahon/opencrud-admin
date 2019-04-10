@@ -1,7 +1,7 @@
 import React, { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { navigate } from '@reach/router';
-import { capitalize } from 'lodash';
+import { startCase } from 'lodash';
 import styled from 'styled-components';
 import { Typography } from '@rmwc/typography';
 import { IconButton } from '@rmwc/icon-button';
@@ -36,7 +36,7 @@ export default class SelectedCardHeader extends PureComponent {
     return (
       <CardHeader data-hidden={selected.length > 0}>
         <CardHeaderTitle use="headline6">
-          {capitalize(resourceParam)}
+          {startCase(resourceParam)}
         </CardHeaderTitle>
         <CardHeaderButtons>
           <IconButton

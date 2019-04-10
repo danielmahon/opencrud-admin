@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { GridCell } from '@rmwc/grid';
 import { Typography } from '@rmwc/typography';
 import { Button } from '@rmwc/button';
-import { debounce, capitalize } from 'lodash';
+import { debounce, startCase } from 'lodash';
 import styled from 'styled-components';
 import { EditorState, convertFromRaw, convertToRaw } from 'draft-js';
 import DraftJSEditor, { composeDecorators } from 'draft-js-plugins-editor';
@@ -158,7 +158,7 @@ export class Editor extends Component {
     return (
       <GridCell span={12}>
         <EditorTitle use="body1" theme="textSecondaryOnBackground">
-          {capitalize(field.name)}
+          {startCase(field.name)}
         </EditorTitle>
         <EditorWrapper>
           <DraftJSEditor

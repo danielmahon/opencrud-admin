@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { Mutation } from 'react-apollo';
-import { capitalize } from 'lodash';
+import { upperFirst } from 'lodash';
 import styled from 'styled-components';
 import { Button, ButtonIcon } from '@rmwc/button';
 
@@ -21,7 +21,7 @@ export default class ListDeleteButton extends Component {
     const { resourceParam, refetch, selected, resetSelection } = this.props;
     return (
       <Mutation
-        mutation={remote.mutation[`deleteMany${capitalize(resourceParam)}`]}
+        mutation={remote.mutation[`deleteMany${upperFirst(resourceParam)}`]}
         onError={error => {
           resetSelection();
           window.alert(error);

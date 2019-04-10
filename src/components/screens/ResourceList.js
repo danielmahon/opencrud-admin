@@ -23,8 +23,9 @@ import { TypeKind } from 'graphql';
 import {
   truncate,
   startCase,
-  capitalize,
+  upperFirst,
   camelCase,
+  kebabCase,
   omit,
   union,
   without,
@@ -209,7 +210,7 @@ class ResourceList extends PureComponent {
   };
   render() {
     const { sortKey, sortDir, first, page, selected } = this.state;
-    const { resourceParam } = this.props;
+    const resourceParam = camelCase(this.props.resourceParam);
     // Format orderBy
     const orderBy =
       sortDir < 0 ? `${sortKey}_ASC` : sortDir > 0 ? `${sortKey}_DESC` : null;
@@ -218,7 +219,7 @@ class ResourceList extends PureComponent {
       return <Redirect to="/404" noThrow />;
     return (
       <Grid>
-        <Helmet title={`List ${capitalize(resourceParam)}`} />
+        <Helmet title={`List ${startCase(resourceParam)}`} />
         <Query query={remote.query.modelConfigsConnection}>
           {({ data: { modelConfigsConnection } }) => (
             <Query
@@ -235,10 +236,10 @@ class ResourceList extends PureComponent {
 
                 const configs = modelConfigsConnection.edges.map(e => e.node);
                 const config = configs.find(
-                  r => r.type === singular(capitalize(resourceParam))
+                  r => r.type === singular(upperFirst(resourceParam))
                 );
                 const schemaType = remote.schema.types.find(
-                  type => type.name === capitalize(config.type)
+                  type => type.name === upperFirst(config.type)
                 );
                 const schemaFields = schemaType.fields;
 
@@ -345,9 +346,9 @@ class ResourceList extends PureComponent {
                                         window.getSelection().removeAllRanges();
                                       }
                                       navigate(
-                                        `/edit/${singular(resourceParam)}/${
-                                          item.id
-                                        }`
+                                        `/edit/${singular(
+                                          kebabCase(resourceParam)
+                                        )}/${item.id}`
                                       );
                                     }}
                                     onClick={() => {
@@ -382,9 +383,9 @@ class ResourceList extends PureComponent {
                                       <Button
                                         onClick={() => {
                                           navigate(
-                                            `/edit/${singular(resourceParam)}/${
-                                              item.id
-                                            }`
+                                            `/edit/${singular(
+                                              kebabCase(resourceParam)
+                                            )}/${item.id}`
                                           );
                                         }}>
                                         <ButtonIcon icon="edit" />
@@ -452,7 +453,7 @@ class ResourceList extends PureComponent {
             icon="add"
             type="button"
             onClick={() => {
-              navigate(`/edit/${singular(resourceParam)}/new`);
+              navigate(`/edit/${kebabCase(singular(resourceParam))}/new`);
             }}
           />
         </FabActions>
